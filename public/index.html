@@ -80,7 +80,25 @@
     .rt td.pri::before { content: none; }
   }
   .namebtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
-  .namebtn:hover { text-decoration: underline; }
+  .namebtn:hover, .ovname:hover { text-decoration: underline; }
+  .ovname { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+  .sc-delta .up { color: var(--ok); } .sc-delta .down { color: #dc2626; }
+  .sites-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .sitecard { display: flex; flex-direction: column; gap: 4px; text-align: left; width: 100%; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; cursor: pointer; }
+  .sitecard:hover { border-color: var(--accent); }
+  .sc-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .sc-head b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sc-live { color: var(--ok); font-size: 12px; white-space: nowrap; }
+  .sc-dom { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sc-num { font-size: 28px; font-weight: 700; line-height: 1.1; margin-top: 8px; }
+  .sc-num span { font-size: 13px; font-weight: 400; color: var(--muted); }
+  .sc-delta { font-size: 12px; color: var(--muted); min-height: 1em; }
+  .sc-row { font-size: 13px; color: var(--muted); }
+  .spark { display: flex; align-items: flex-end; gap: 1px; height: 36px; margin: 8px 0 4px; }
+  .spark i { flex: 1; min-width: 1px; background: color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 1px; min-height: 2px; }
+  .sc-foot { font-size: 12px; color: var(--muted); }
+  .sitecard.idle { opacity: .75; }
+
   .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 30; }
   .panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--card); border-left: 1px solid var(--line); z-index: 31; display: flex; flex-direction: column; box-shadow: -8px 0 24px rgba(0, 0, 0, .15); }
   .panel-head { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); }
@@ -143,6 +161,16 @@
 
   <main>
     <section id="setup" class="card" hidden></section>
+    <div id="overview" hidden>
+      <div class="card stats" style="margin-bottom:16px">
+        <div class="stat"><b id="oViews">0</b><span>Page views</span><small id="dOViews"></small></div>
+        <div class="stat"><b id="oVisitors">0</b><span>Unique visitors</span><small id="dOVisitors"></small></div>
+        <div class="stat"><b id="oNamed">0</b><span>Named visitors</span><small id="dONamed"></small></div>
+        <div class="stat"><b><span class="dot"></span><span id="oLive" style="font-size:inherit;color:inherit">0</span></b><span>Online now</span></div>
+      </div>
+      <div class="sites-grid" id="siteGrid"></div>
+      <div class="card" style="margin-top:16px"><h2>Recently named visitors</h2><div class="scroll" id="ovRecent"></div></div>
+    </div>
     <div id="dash" hidden>
       <div class="card stats" style="margin-bottom:16px">
         <div class="stat"><b id="sViews">0</b><span>Page views</span><small id="dViews"></small></div>
@@ -268,12 +296,26 @@ async function start() {
   timer = setInterval(load, 30000);
 }
 
+const ALL = '__all';
+
 async function loadSites(selectId) {
   sites = await api('/api/sites');
-  $('site').innerHTML = sites.map(s => `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.domain)})</option>`).join('');
-  if (selectId) $('site').value = selectId;
+  const all = sites.length > 1 ? `<option value="${ALL}">All sites</option>` : '';
+  $('site').innerHTML = all + sites.map(s => `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.domain)})</option>`).join('');
+  const h = !selectId && hashTarget();
+  const want = selectId || (h && sites.some(x => x.id === h.site) ? h.site : null) || (sites.length > 1 ? ALL : sites[0]?.id);
+  if (want) $('site').value = want;
+  updateLink(); resetFilters();
   await load();
   if (!selectId) openFromHash();
+}
+
+// Jump from the overview into one site, optionally straight to a visitor's timeline.
+async function goSite(id, name) {
+  $('site').value = id;
+  updateLink(); resetFilters();
+  await load();
+  if (name) openVisitor(name);
 }
 
 const cleanDomain = v => v.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/[\/?#].*$/, '').replace(/^www\./, '');
@@ -345,9 +387,11 @@ const place = r => [r.city, r.country].filter(Boolean).join(', ') || '-';
 
 async function load() {
   const id = $('site').value;
-  if (!id) { $('dash').hidden = true; $('setup').hidden = false;
+  if (!id) { $('dash').hidden = true; $('overview').hidden = true; $('setup').hidden = false;
     $('setup').innerHTML = '<h2>Get started</h2><p>Add your first site with <b>+ Add site</b>, then paste the snippet it gives you into that site\'s HTML.</p>'; return; }
-  $('setup').hidden = true; $('dash').hidden = false;
+  $('setup').hidden = true;
+  if (id === ALL) { $('dash').hidden = true; $('overview').hidden = false; return loadOverview(); }
+  $('overview').hidden = true; $('dash').hidden = false;
   updateLink();
   const d = await api(`/api/stats?site=${id}&days=${days}`);
 
@@ -391,6 +435,47 @@ const fmtTime = t => new Date(t).toLocaleTimeString(undefined, { hour: '2-digit'
 const fmtFull = t => `${fmtDate(t)}, ${fmtTime(t)}`;
 const dur = ms => { const m = Math.round(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
 let lastFocus = null;
+
+async function loadOverview() {
+  const d = await api(`/api/overview?days=${days}`);
+  const sum = (k, f = 'totals') => d.sites.reduce((a, x) => a + x[f][k], 0);
+  const vs = d.days === 1 ? 'previous 24 hours' : `previous ${d.days} days`;
+  $('oViews').textContent = sum('views');
+  $('oVisitors').textContent = sum('visitors');
+  $('oNamed').textContent = sum('named');
+  $('oLive').textContent = d.sites.reduce((a, x) => a + x.live, 0);
+  $('dOViews').innerHTML = delta(sum('views'), sum('views', 'prev'), vs);
+  $('dOVisitors').innerHTML = delta(sum('visitors'), sum('visitors', 'prev'), vs);
+  $('dONamed').innerHTML = delta(sum('named'), sum('named', 'prev'), vs);
+
+  $('siteGrid').innerHTML = d.sites.map(x => {
+    const never = !x.last_seen;
+    const { rows } = fillBuckets(x.daily, d.days);
+    const max = Math.max(1, ...rows.map(r => r.views));
+    const spark = never ? '' : `<div class="spark" aria-hidden="true">${rows.map(r => `<i style="height:${(r.views / max) * 100}%"></i>`).join('')}</div>`;
+    return `<button class="sitecard${never ? ' idle' : ''}" data-id="${esc(x.id)}">
+      <div class="sc-head"><b>${esc(x.name)}</b>${x.live ? `<span class="sc-live">● ${x.live} online</span>` : ''}</div>
+      <div class="sc-dom">${esc(x.domain)}</div>
+      <div class="sc-num">${x.totals.views} <span>views</span></div>
+      <div class="sc-delta">${never ? '' : delta(x.totals.views, x.prev.views, vs)}</div>
+      <div class="sc-row">${never ? 'No visits yet. Open it to get the install snippet.' : `${x.totals.visitors} visitor${x.totals.visitors === 1 ? '' : 's'} · ${x.totals.named} named`}</div>
+      ${spark}
+      <div class="sc-foot">${never ? '' : `Last visit ${ago(x.last_seen)}`}</div>
+    </button>`;
+  }).join('') || '<div class="empty">No sites yet.</div>';
+
+  const siteName = Object.fromEntries(d.sites.map(x => [x.id, x.name]));
+  $('ovRecent').innerHTML = d.recent.length
+    ? `<table class="rt"><thead><tr><th>Name</th><th>Site</th><th>Visits</th><th>Location</th><th>Last seen</th></tr></thead><tbody>${
+        d.recent.map(r => `<tr><td class="pri"><button class="ovname" data-site="${esc(r.site_id)}" data-name="${esc(r.name)}">${esc(r.name)}</button></td><td data-label="Site">${esc(siteName[r.site_id] || r.site_id)}</td><td data-label="Visits">${r.visits}</td><td data-label="Location">${esc(place(r))}</td><td data-label="Last seen">${ago(r.last_seen)}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="empty">Nobody named in this range. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
+}
+$('overview').addEventListener('click', e => {
+  const n = e.target.closest('.ovname');
+  if (n) return goSite(n.dataset.site, n.dataset.name);
+  const c = e.target.closest('.sitecard');
+  if (c) goSite(c.dataset.id);
+});
 
 // ---- Named visitors: search + sort, and recent activity: filters. All client-side on the loaded data.
 let lastData = null;
@@ -482,17 +567,23 @@ function bucketLabel(t, hourly, long) {
 let chartRows = [], chartHourly = false;
 
 // Zero-filled buckets, so quiet days show as gaps instead of disappearing.
-function renderChart(d) {
-  const hourly = d.days <= 1;
+function fillBuckets(daily, nDays) {
+  const hourly = nDays <= 1;
   const unit = hourly ? 3600e3 : 864e5;
-  const n = hourly ? 25 : d.days + 1;
+  const n = hourly ? 25 : nDays + 1;
   const end = Math.floor(Date.now() / unit) * unit;
-  const map = new Map(d.daily.map(x => [new Date(x.bucket).getTime(), x]));
+  const map = new Map(daily.map(x => [new Date(x.bucket).getTime(), x]));
   const rows = Array.from({ length: n }, (_, i) => {
     const t = end - (n - 1 - i) * unit;
     const x = map.get(t);
     return { t, views: x?.views ?? 0, visitors: x?.visitors ?? 0 };
   });
+  return { hourly, rows };
+}
+
+function renderChart(d) {
+  const { hourly, rows } = fillBuckets(d.daily, d.days);
+  const n = rows.length;
   if (!d.totals.views) { $('chart').innerHTML = '<div class="empty">No data yet</div>'; $('xaxis').innerHTML = ''; return; }
   const max = Math.max(1, ...rows.map(r => r.views));
   $('chart').innerHTML = rows.map((r, i) =>
@@ -587,7 +678,7 @@ async function openVisitor(name) {
   $('vbody').innerHTML = '<div class="empty">Loading…</div>';
   $('overlay').hidden = false; $('vpanel').hidden = false;
   document.body.classList.add('modal-open');
-  history.replaceState(null, '', '#v=' + encodeURIComponent(name));
+  history.replaceState(null, '', '#s=' + $('site').value + '&v=' + encodeURIComponent(name));
   $('vclose').focus();
   try { renderVisitor(await api(`/api/visitor?site=${$('site').value}&name=${encodeURIComponent(name)}`)); }
   catch (e) { $('vbody').innerHTML = `<div class="empty">${esc(e.message === 'not found' ? 'No events for this visitor.' : 'Could not load this visitor.')}</div>`; }
@@ -609,9 +700,15 @@ $('overlay').onclick = closeVisitor;
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('vpanel').hidden) closeVisitor(); });
 
 // Deep link: #v=Name opens that visitor once the dashboard has loaded.
+// #s=<site>&v=<name> (or the older #v=<name>, which uses the selected site).
+function hashTarget() {
+  const m = location.hash.match(/^#(?:s=([^&]+)&)?v=(.+)$/);
+  return m ? { site: m[1] ? decodeURIComponent(m[1]) : null, name: decodeURIComponent(m[2]) } : null;
+}
 function openFromHash() {
-  const m = location.hash.match(/^#v=(.+)$/);
-  if (m && $('site').value) openVisitor(decodeURIComponent(m[1]));
+  const h = hashTarget();
+  const cur = $('site').value;
+  if (h && cur && cur !== ALL && (!h.site || h.site === cur)) openVisitor(h.name);
 }
 
 if (token) api('/api/sites').then(start).catch(() => { $('login').hidden = false; });
