@@ -76,6 +76,15 @@
   .tl .t { color: var(--muted); font-size: 12px; margin-right: 6px; }
   .tl .m { color: var(--muted); font-size: 12px; display: block; }
   body.modal-open { overflow: hidden; }
+  dialog { width: min(440px, calc(100% - 32px)); border: 1px solid var(--line); border-radius: 12px; padding: 20px; background: var(--card); color: var(--text); box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+  dialog::backdrop { background: rgba(0, 0, 0, .45); }
+  dialog h2 { margin: 0 0 12px; font-size: 18px; }
+  dialog form { display: grid; gap: 14px; }
+  dialog label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  dialog label small { font-size: 12px; }
+  dialog input { width: 100%; color: var(--text); }
+  .err { margin: 0; color: #dc2626; font-size: 13px; }
+  .dlgfoot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
   .linkform { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
   .linkform label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
   .linkform input { width: 100%; }
@@ -151,6 +160,29 @@
   </main>
 </div>
 
+<dialog id="addDlg" aria-labelledby="addTitle">
+  <div id="addStep1">
+    <h2 id="addTitle">Add a site</h2>
+    <form id="addForm" novalidate>
+      <label>Site name
+        <input id="adName" maxlength="80" placeholder="Portfolio" autocomplete="off">
+      </label>
+      <label>Domain
+        <input id="adDomain" placeholder="mysite.vercel.app" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
+        <small>The address visitors use. Pasting a full link is fine; the https:// and path are dropped.</small>
+      </label>
+      <p id="adErr" class="err" role="alert" hidden></p>
+      <div class="dlgfoot"><button type="button" id="adCancel">Cancel</button><button class="primary" id="adSubmit">Add site</button></div>
+    </form>
+  </div>
+  <div id="addStep2" hidden>
+    <h2>Site added</h2>
+    <p style="margin:0 0 8px">Paste this before <code>&lt;/body&gt;</code> on <b id="adDom"></b>:</p>
+    <div class="snippet" id="adSnippet"></div>
+    <div class="dlgfoot"><button type="button" id="adCopy">Copy snippet</button><button type="button" class="primary" id="adDone">Done</button></div>
+  </div>
+</dialog>
+
 <div id="overlay" class="overlay" hidden></div>
 <aside id="vpanel" class="panel" role="dialog" aria-modal="true" aria-labelledby="vname" hidden>
   <div class="panel-head"><h2 id="vname"></h2><button id="vclose" aria-label="Close">Close</button></div>
@@ -199,11 +231,51 @@ async function loadSites(selectId) {
   if (!selectId) openFromHash();
 }
 
-$('addBtn').onclick = async () => {
-  const name = prompt('Site name (e.g. Portfolio)'); if (!name) return;
-  const domain = prompt('Domain (e.g. ahmad-zaman-portfolio-3x99.vercel.app)'); if (!domain) return;
-  try { const s = await api('/api/sites', { method: 'POST', body: JSON.stringify({ name, domain }) }); await loadSites(s.id); }
-  catch (e) { alert(e.message); }
+const cleanDomain = v => v.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/[\/?#].*$/, '').replace(/^www\./, '');
+const snippetFor = id => `<script defer src="${location.origin}/t.js" data-site="${id}"><\/script>`;
+const adErr = msg => { $('adErr').textContent = msg || ''; $('adErr').hidden = !msg; };
+
+$('addBtn').onclick = () => {
+  $('addForm').reset(); adErr('');
+  $('addStep1').hidden = false; $('addStep2').hidden = true;
+  $('adSubmit').disabled = false; $('adSubmit').textContent = 'Add site';
+  $('addDlg').showModal();
+  $('adName').focus();
+};
+$('adCancel').onclick = () => $('addDlg').close();
+$('adDone').onclick = () => $('addDlg').close();
+
+$('addForm').onsubmit = async e => {
+  e.preventDefault();
+  const name = $('adName').value.trim();
+  const domain = cleanDomain($('adDomain').value);
+  if (!name) { adErr('Give the site a name.'); $('adName').focus(); return; }
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$|^localhost$/.test(domain)) {
+    adErr('Enter a domain like mysite.vercel.app.'); $('adDomain').focus(); return;
+  }
+  adErr(''); $('adSubmit').disabled = true; $('adSubmit').textContent = 'Adding…';
+  try {
+    const s = await api('/api/sites', { method: 'POST', body: JSON.stringify({ name, domain }) });
+    $('adDom').textContent = s.domain;
+    $('adSnippet').textContent = snippetFor(s.id);
+    $('addStep1').hidden = true; $('addStep2').hidden = false;
+    $('adCopy').focus();
+    loadSites(s.id);
+  } catch (err) {
+    adErr(err.message || 'Could not add the site.');
+    $('adSubmit').disabled = false; $('adSubmit').textContent = 'Add site';
+  }
+};
+
+$('adCopy').onclick = async () => {
+  const text = $('adSnippet').textContent;
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const r = document.createRange(); r.selectNodeContents($('adSnippet'));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy');
+  }
+  $('adCopy').textContent = 'Copied';
+  setTimeout(() => { $('adCopy').textContent = 'Copy snippet'; }, 1500);
 };
 $('site').onchange = () => { updateLink(); load(); };
 let days = 30;
