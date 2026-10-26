@@ -55,6 +55,30 @@
   .col .u { position: absolute; left: 0; right: 0; bottom: 0; background: var(--accent); }
   .xaxis { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 6px; }
   #tip { position: absolute; z-index: 5; pointer-events: none; background: var(--text); color: var(--bg); font-size: 12px; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .toolbar input[type=search] { flex: 1 1 180px; min-width: 0; }
+  .toolbar .pills button { padding: 5px 10px; }
+  .count { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .mobile-only { display: none; }
+  .sortbtn { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+  .sortbtn:hover { color: var(--text); }
+  @media (max-width: 640px) {
+    header { padding: 12px; }
+    header #site { flex: 1 1 100%; order: 5; }
+    header #range { flex: 1 1 100%; order: 6; }
+    header #range button { flex: 1; padding: 10px 0; }
+    main { padding: 12px; }
+    .stat b { font-size: 24px; }
+    .namebtn { padding: 6px 0; min-height: 32px; }
+    .mobile-only { display: inline-block; }
+    .rt thead { display: none; }
+    .rt, .rt tbody { display: block; width: 100%; }
+    .rt tr { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; }
+    .rt td { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border: 0; white-space: normal; text-align: right; overflow-wrap: anywhere; }
+    .rt td::before { content: attr(data-label); color: var(--muted); font-size: 12px; text-align: left; flex: none; }
+    .rt td.pri { order: -1; font-weight: 600; justify-content: flex-start; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+    .rt td.pri::before { content: none; }
+  }
   .namebtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
   .namebtn:hover { text-decoration: underline; }
   .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 30; }
@@ -144,7 +168,17 @@
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:16px"><h2>Named visitors</h2><div class="scroll" id="named"></div></div>
+      <div class="card" style="margin-bottom:16px">
+        <h2>Named visitors</h2>
+        <div class="toolbar">
+          <input id="nmSearch" type="search" placeholder="Search names" aria-label="Search named visitors" autocomplete="off">
+          <select id="nmSort" class="mobile-only" aria-label="Sort by">
+            <option value="last_seen">Latest first</option><option value="visits">Most visits</option><option value="name">Name A–Z</option>
+          </select>
+          <span class="count" id="nmCount"></span>
+        </div>
+        <div class="scroll" id="named"></div>
+      </div>
 
       <div class="grid" style="margin-bottom:16px">
         <div class="card"><h2>Top pages</h2><div id="paths"></div></div>
@@ -154,7 +188,18 @@
         <div class="card"><h2>Custom events</h2><div id="custom"></div></div>
       </div>
 
-      <div class="card"><h2>Recent activity</h2><div class="scroll" id="recent"></div></div>
+      <div class="card">
+        <h2>Recent activity</h2>
+        <div class="toolbar">
+          <div class="pills" id="rcWho" role="group" aria-label="Who">
+            <button data-v="all" class="on">All</button><button data-v="named">Named</button><button data-v="anon">Anonymous</button>
+          </div>
+          <select id="rcEvent" aria-label="Event"><option value="all">All events</option></select>
+          <select id="rcCountry" aria-label="Country"><option value="all">All countries</option></select>
+          <span class="count" id="rcCount"></span>
+        </div>
+        <div class="scroll" id="recent"></div>
+      </div>
       <div class="card" style="margin-top:16px"><h2>Install on this site</h2><div id="install"></div></div>
     </div>
   </main>
@@ -277,7 +322,7 @@ $('adCopy').onclick = async () => {
   $('adCopy').textContent = 'Copied';
   setTimeout(() => { $('adCopy').textContent = 'Copy snippet'; }, 1500);
 };
-$('site').onchange = () => { updateLink(); load(); };
+$('site').onchange = () => { updateLink(); resetFilters(); load(); };
 let days = 30;
 $('range').onclick = e => {
   const b = e.target.closest('button[data-days]');
@@ -317,10 +362,8 @@ async function load() {
   $('chartTitle').textContent = d.days === 1 ? 'Traffic by hour' : 'Traffic by day';
   renderChart(d);
 
-  $('named').innerHTML = d.named.length
-    ? `<table><tr><th>Name</th><th>Visits</th><th>Actions</th><th>Last seen</th><th>Location</th><th>Device</th></tr>${
-        d.named.map(n => `<tr><td><button class="namebtn" data-name="${esc(n.name)}">${esc(n.name)}</button></td><td>${n.visits}</td><td>${n.actions}</td><td>${ago(n.last_seen)}</td><td>${esc(place(n))}</td><td>${esc(n.device)}</td></tr>`).join('')}</table>`
-    : '<div class="empty">Nobody named yet. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
+  lastData = d;
+  renderNamed();
 
   $('paths').innerHTML = bars(d.paths);
   $('referrers').innerHTML = bars(d.referrers);
@@ -328,10 +371,8 @@ async function load() {
   $('devices').innerHTML = bars(d.devices);
   $('custom').innerHTML = bars(d.custom);
 
-  $('recent').innerHTML = d.recent.length
-    ? `<table><tr><th>When</th><th>Who</th><th>Event</th><th>Page</th><th>Location</th><th>From</th></tr>${
-        d.recent.map(r => `<tr><td>${ago(r.ts)}</td><td>${r.name ? `<button class="namebtn" data-name="${esc(r.name)}">${esc(r.name)}</button>` : 'Anonymous'}</td><td>${esc(r.event)}</td><td>${esc(r.path || '/')}</td><td>${esc(place(r))}</td><td>${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</table>`
-    : '<div class="empty">No activity yet</div>';
+  fillRecentFilters();
+  renderRecent();
 
   const s = sites.find(x => x.id === id);
   $('install').innerHTML = `
@@ -350,6 +391,79 @@ const fmtTime = t => new Date(t).toLocaleTimeString(undefined, { hour: '2-digit'
 const fmtFull = t => `${fmtDate(t)}, ${fmtTime(t)}`;
 const dur = ms => { const m = Math.round(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
 let lastFocus = null;
+
+// ---- Named visitors: search + sort, and recent activity: filters. All client-side on the loaded data.
+let lastData = null;
+const nm = { q: '', key: 'last_seen', dir: -1 };
+const rc = { who: 'all', event: 'all', country: 'all' };
+const SORTABLE = [['name', 'Name'], ['visits', 'Visits'], ['actions', 'Actions'], ['last_seen', 'Last seen']];
+
+function renderNamed() {
+  const all = lastData.named;
+  if (!all.length) {
+    $('named').innerHTML = '<div class="empty">Nobody named yet. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
+    $('nmCount').textContent = '';
+    return;
+  }
+  const q = nm.q.trim().toLowerCase();
+  const rows = all.filter(n => !q || n.name.toLowerCase().includes(q));
+  rows.sort((a, b) => nm.dir * (nm.key === 'name' ? a.name.localeCompare(b.name)
+    : nm.key === 'last_seen' ? new Date(a.last_seen) - new Date(b.last_seen) : a[nm.key] - b[nm.key]));
+  $('nmCount').textContent = rows.length === all.length ? `${all.length} total` : `${rows.length} of ${all.length}`;
+  $('nmSort').value = nm.key;
+  if (!rows.length) { $('named').innerHTML = `<div class="empty">No names match “${esc(nm.q.trim())}”.</div>`; return; }
+  const th = SORTABLE.map(([k, label]) => `<th aria-sort="${nm.key === k ? (nm.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn" data-k="${k}">${label}${nm.key === k ? (nm.dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`);
+  $('named').innerHTML = `<table class="rt"><thead><tr>${th.slice(0, 1).join('')}${th.slice(1).join('')}<th>Location</th><th>Device</th></tr></thead><tbody>${
+    rows.map(n => `<tr><td class="pri"><button class="namebtn" data-name="${esc(n.name)}">${esc(n.name)}</button></td><td data-label="Visits">${n.visits}</td><td data-label="Actions">${n.actions}</td><td data-label="Last seen">${ago(n.last_seen)}</td><td data-label="Location">${esc(place(n))}</td><td data-label="Device">${esc(n.device)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function setSort(key, dir) {
+  nm.dir = dir ?? (nm.key === key ? -nm.dir : (key === 'name' ? 1 : -1));
+  nm.key = key;
+  renderNamed();
+}
+$('named').addEventListener('click', e => { const b = e.target.closest('.sortbtn'); if (b) setSort(b.dataset.k); });
+$('nmSort').onchange = e => setSort(e.target.value, e.target.value === 'name' ? 1 : -1);
+$('nmSearch').oninput = e => { nm.q = e.target.value; if (lastData) renderNamed(); };
+
+// Keep the chosen option when the list is rebuilt on refresh; fall back to "all" if it vanished.
+function setOptions(sel, key, first, values, label) {
+  const cur = rc[key];
+  sel.innerHTML = `<option value="all">${first}</option>` + values.map(v => `<option value="${esc(v)}">${esc(label(v))}</option>`).join('');
+  if (!values.includes(cur)) rc[key] = 'all';
+  sel.value = rc[key];
+}
+function fillRecentFilters() {
+  const ev = [...new Set(lastData.recent.map(r => r.event))].sort((a, b) => (a === 'pageview' ? -1 : b === 'pageview' ? 1 : a.localeCompare(b)));
+  const co = [...new Set(lastData.recent.map(r => r.country).filter(Boolean))].sort();
+  setOptions($('rcEvent'), 'event', 'All events', ev, v => (v === 'pageview' ? 'Page views' : v));
+  setOptions($('rcCountry'), 'country', 'All countries', co, v => v);
+}
+function renderRecent() {
+  const all = lastData.recent;
+  if (!all.length) { $('recent').innerHTML = '<div class="empty">No activity yet</div>'; $('rcCount').textContent = ''; return; }
+  const rows = all.filter(r => (rc.who === 'all' || (rc.who === 'named') === !!r.name)
+    && (rc.event === 'all' || r.event === rc.event) && (rc.country === 'all' || r.country === rc.country));
+  $('rcCount').textContent = `${rows.length} of the latest ${all.length}`;
+  if (!rows.length) { $('recent').innerHTML = '<div class="empty">Nothing matches these filters.</div>'; return; }
+  $('recent').innerHTML = `<table class="rt"><thead><tr><th>When</th><th>Who</th><th>Event</th><th>Page</th><th>Location</th><th>From</th></tr></thead><tbody>${
+    rows.map(r => `<tr><td data-label="When">${ago(r.ts)}</td><td class="pri">${r.name ? `<button class="namebtn" data-name="${esc(r.name)}">${esc(r.name)}</button>` : 'Anonymous'}</td><td data-label="Event">${esc(r.event)}</td><td data-label="Page">${esc(r.path || '/')}</td><td data-label="Location">${esc(place(r))}</td><td data-label="From">${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</tbody></table>`;
+}
+$('rcWho').onclick = e => {
+  const b = e.target.closest('button[data-v]');
+  if (!b) return;
+  rc.who = b.dataset.v;
+  document.querySelectorAll('#rcWho button').forEach(x => x.classList.toggle('on', x === b));
+  renderRecent();
+};
+$('rcEvent').onchange = e => { rc.event = e.target.value; renderRecent(); };
+$('rcCountry').onchange = e => { rc.country = e.target.value; renderRecent(); };
+
+function resetFilters() {
+  nm.q = ''; $('nmSearch').value = '';
+  rc.who = 'all'; rc.event = 'all'; rc.country = 'all';
+  document.querySelectorAll('#rcWho button').forEach(x => x.classList.toggle('on', x.dataset.v === 'all'));
+}
 
 function delta(cur, prev, vs) {
   if (!cur && !prev) return '';
