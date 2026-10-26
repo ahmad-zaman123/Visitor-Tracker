@@ -40,6 +40,27 @@
   .empty { color: var(--muted); padding: 8px 0; }
   .snippet { font: 13px ui-monospace, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; word-break: break-all; margin: 8px 0; }
   #login { max-width: 320px; margin: 20vh auto; display: grid; gap: 10px; padding: 0 16px; }
+  .namebtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+  .namebtn:hover { text-decoration: underline; }
+  .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 30; }
+  .panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--card); border-left: 1px solid var(--line); z-index: 31; display: flex; flex-direction: column; box-shadow: -8px 0 24px rgba(0, 0, 0, .15); }
+  .panel-head { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); }
+  .panel-head h2 { margin: 0; font-size: 18px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .panel-body { overflow-y: auto; overflow-x: hidden; padding: 16px; flex: 1; min-width: 0; }
+  .chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+  .chip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .chip { min-width: 0; }
+  .chip b { display: block; font-size: 17px; overflow-wrap: anywhere; }
+  .chip span { color: var(--muted); font-size: 12px; }
+  .session { margin-bottom: 18px; }
+  .session h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+  .tl { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid var(--line); }
+  .tl li { position: relative; padding: 4px 0 8px 10px; }
+  .tl li::before { content: ""; position: absolute; left: -20px; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .tl li.act::before { background: var(--ok); }
+  .tl .t { color: var(--muted); font-size: 12px; margin-right: 6px; }
+  .tl .m { color: var(--muted); font-size: 12px; display: block; }
+  body.modal-open { overflow: hidden; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -92,6 +113,12 @@
   </main>
 </div>
 
+<div id="overlay" class="overlay" hidden></div>
+<aside id="vpanel" class="panel" role="dialog" aria-modal="true" aria-labelledby="vname" hidden>
+  <div class="panel-head"><h2 id="vname"></h2><button id="vclose" aria-label="Close">Close</button></div>
+  <div class="panel-body" id="vbody"></div>
+</aside>
+
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -130,7 +157,8 @@ async function loadSites(selectId) {
   sites = await api('/api/sites');
   $('site').innerHTML = sites.map(s => `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.domain)})</option>`).join('');
   if (selectId) $('site').value = selectId;
-  load();
+  await load();
+  if (!selectId) openFromHash();
 }
 
 $('addBtn').onclick = async () => {
@@ -172,7 +200,7 @@ async function load() {
 
   $('named').innerHTML = d.named.length
     ? `<table><tr><th>Name</th><th>Visits</th><th>Actions</th><th>Last seen</th><th>Location</th><th>Device</th></tr>${
-        d.named.map(n => `<tr><td><b>${esc(n.name)}</b></td><td>${n.visits}</td><td>${n.actions}</td><td>${ago(n.last_seen)}</td><td>${esc(place(n))}</td><td>${esc(n.device)}</td></tr>`).join('')}</table>`
+        d.named.map(n => `<tr><td><button class="namebtn" data-name="${esc(n.name)}">${esc(n.name)}</button></td><td>${n.visits}</td><td>${n.actions}</td><td>${ago(n.last_seen)}</td><td>${esc(place(n))}</td><td>${esc(n.device)}</td></tr>`).join('')}</table>`
     : '<div class="empty">Nobody named yet. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
 
   $('paths').innerHTML = bars(d.paths);
@@ -183,7 +211,7 @@ async function load() {
 
   $('recent').innerHTML = d.recent.length
     ? `<table><tr><th>When</th><th>Who</th><th>Event</th><th>Page</th><th>Location</th><th>From</th></tr>${
-        d.recent.map(r => `<tr><td>${ago(r.ts)}</td><td>${esc(r.name || 'Anonymous')}</td><td>${esc(r.event)}</td><td>${esc(r.path || '/')}</td><td>${esc(place(r))}</td><td>${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</table>`
+        d.recent.map(r => `<tr><td>${ago(r.ts)}</td><td>${r.name ? `<button class="namebtn" data-name="${esc(r.name)}">${esc(r.name)}</button>` : 'Anonymous'}</td><td>${esc(r.event)}</td><td>${esc(r.path || '/')}</td><td>${esc(place(r))}</td><td>${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</table>`
     : '<div class="empty">No activity yet</div>';
 
   const s = sites.find(x => x.id === id);
@@ -196,6 +224,80 @@ async function load() {
     if (!confirm(`Delete ${s.name} and all its events?`)) return;
     await api('/api/sites?id=' + id, { method: 'DELETE' }); loadSites();
   };
+}
+
+const fmtDate = t => new Date(t).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+const fmtTime = t => new Date(t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+const fmtFull = t => `${fmtDate(t)}, ${fmtTime(t)}`;
+const dur = ms => { const m = Math.round(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
+let lastFocus = null;
+
+// Events arrive newest first. A new session starts after 30 minutes of silence.
+function groupSessions(events) {
+  const asc = [...events].reverse();
+  const out = [];
+  for (const e of asc) {
+    const last = out[out.length - 1];
+    if (last && new Date(e.ts) - new Date(last.events[last.events.length - 1].ts) < 30 * 60000) last.events.push(e);
+    else out.push({ events: [e] });
+  }
+  return out.reverse();
+}
+
+function renderVisitor(d) {
+  const last = d.events[0];
+  const place = [last.city, last.country].filter(Boolean).join(', ') || '-';
+  const sessions = groupSessions(d.events);
+  $('vbody').innerHTML = `
+    <div class="chips">
+      <div class="chip"><b>${d.visits}</b><span>Page views</span></div>
+      <div class="chip"><b>${d.actions}</b><span>Actions</span></div>
+      <div class="chip"><b>${esc(fmtFull(d.first_seen))}</b><span>First seen</span></div>
+      <div class="chip"><b>${esc(fmtFull(d.last_seen))}</b><span>Last seen</span></div>
+      <div class="chip"><b>${esc(place)}</b><span>Last location</span></div>
+      <div class="chip"><b>${d.devices}</b><span>${d.devices === 1 ? 'Device' : 'Devices'} · ${esc(last.device)} / ${esc(last.browser)}</span></div>
+    </div>
+    ${sessions.map(s => {
+      const first = s.events[0], end = s.events[s.events.length - 1];
+      return `<div class="session"><h3>${esc(fmtDate(first.ts))}, ${esc(fmtTime(first.ts))} · ${s.events.length} event${s.events.length === 1 ? '' : 's'} · ${dur(new Date(end.ts) - new Date(first.ts))}${first.referrer ? ' · from ' + esc(first.referrer) : ''}</h3>
+      <ul class="tl">${s.events.map(e => e.event === 'pageview'
+        ? `<li><span class="t">${esc(fmtTime(e.ts))}</span>Viewed <b>${esc(e.path || '/')}</b></li>`
+        : `<li class="act"><span class="t">${esc(fmtTime(e.ts))}</span>${esc(e.event)}${e.path ? `<span class="m">on ${esc(e.path)}</span>` : ''}</li>`).join('')}</ul></div>`;
+    }).join('')}
+    ${d.events.length >= 300 ? '<div class="empty">Showing the latest 300 events.</div>' : ''}`;
+}
+
+async function openVisitor(name) {
+  lastFocus = document.activeElement;
+  $('vname').textContent = name;
+  $('vbody').innerHTML = '<div class="empty">Loading…</div>';
+  $('overlay').hidden = false; $('vpanel').hidden = false;
+  document.body.classList.add('modal-open');
+  history.replaceState(null, '', '#v=' + encodeURIComponent(name));
+  $('vclose').focus();
+  try { renderVisitor(await api(`/api/visitor?site=${$('site').value}&name=${encodeURIComponent(name)}`)); }
+  catch (e) { $('vbody').innerHTML = `<div class="empty">${esc(e.message === 'not found' ? 'No events for this visitor.' : 'Could not load this visitor.')}</div>`; }
+}
+
+function closeVisitor() {
+  $('overlay').hidden = true; $('vpanel').hidden = true;
+  document.body.classList.remove('modal-open');
+  history.replaceState(null, '', location.pathname + location.search);
+  lastFocus?.focus?.();
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('.namebtn');
+  if (b) openVisitor(b.dataset.name);
+});
+$('vclose').onclick = closeVisitor;
+$('overlay').onclick = closeVisitor;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('vpanel').hidden) closeVisitor(); });
+
+// Deep link: #v=Name opens that visitor once the dashboard has loaded.
+function openFromHash() {
+  const m = location.hash.match(/^#v=(.+)$/);
+  if (m && $('site').value) openVisitor(decodeURIComponent(m[1]));
 }
 
 if (token) api('/api/sites').then(start).catch(() => { $('login').hidden = false; });
