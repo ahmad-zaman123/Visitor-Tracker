@@ -22,11 +22,15 @@ export function ensureSchema() {
   return ready;
 }
 
-export function isAdmin(req) {
+// Constant-time check of the request's bearer token against a secret. An unset secret never matches.
+export function hasBearer(req, want) {
   const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  const want = process.env.ADMIN_PASSWORD || '';
   if (!want || given.length !== want.length) return false;
   return timingSafeEqual(Buffer.from(given), Buffer.from(want));
+}
+
+export function isAdmin(req) {
+  return hasBearer(req, process.env.ADMIN_PASSWORD || '');
 }
 
 export function hashIp(ip) {

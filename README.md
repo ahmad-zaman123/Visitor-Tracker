@@ -18,6 +18,14 @@ your page calls `tracker.identify('Name')`.
 4. Deploy, open the project URL, sign in, click **+ Add site**.
 5. Paste the snippet it shows into your site. Tables are created automatically on first use.
 
+## Data retention
+
+A daily Vercel Cron job (`vercel.json`, 03:00 UTC) calls `/api/cleanup`, which deletes events older than
+180 days. Set `RETENTION_DAYS` to change it (minimum 30; keep at least 60 so the 30-day comparison works,
+and 180 for the 90-day comparison). Add a `CRON_SECRET` environment variable in Vercel (any long random
+string): Vercel sends it with each cron call, and the endpoint refuses requests without it. You can also run
+a cleanup by hand with `curl -H "Authorization: Bearer $ADMIN_PASSWORD" https://<your-app>/api/cleanup`.
+
 ## Using it
 
 - Named link: `https://yoursite.com/?ref=Sara-Acme` shows as "Sara Acme" and is remembered on later visits.
