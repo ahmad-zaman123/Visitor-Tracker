@@ -10,12 +10,17 @@ export default async function handler(req, res) {
   if (!site) return res.status(400).json({ error: 'site required' });
 
   const since = new Date(Date.now() - days * 864e5).toISOString();
+  const sincePrev = new Date(Date.now() - 2 * days * 864e5).toISOString();
+  const unit = days <= 1 ? 'hour' : 'day';
 
-  const [totals, daily, paths, countries, referrers, devices, named, recent, custom, live] = await Promise.all([
+  const [totals, prev, daily, paths, countries, referrers, devices, named, recent, custom, live] = await Promise.all([
     sql`select count(*)::int as views, count(distinct vid)::int as visitors,
         count(distinct vid) filter (where name is not null)::int as named
         from events where event = 'pageview' and site_id = ${site} and ts >= ${since}`,
-    sql`select to_char(date_trunc('day', ts), 'YYYY-MM-DD') as day, count(*)::int as views,
+    sql`select count(*)::int as views, count(distinct vid)::int as visitors,
+        count(distinct vid) filter (where name is not null)::int as named
+        from events where event = 'pageview' and site_id = ${site} and ts >= ${sincePrev} and ts < ${since}`,
+    sql`select date_trunc(${unit}, ts) as bucket, count(*)::int as views,
         count(distinct vid)::int as visitors
         from events where event = 'pageview' and site_id = ${site} and ts >= ${since}
         group by 1 order by 1`,
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
 
   res.setHeader('Cache-Control', 'no-store');
   res.json({
-    totals: totals[0], daily, paths, countries, referrers, devices, named, recent, custom,
+    totals: totals[0], prev: prev[0], daily, paths, countries, referrers, devices, named, recent, custom,
     live: live[0].n, days,
   });
 }
