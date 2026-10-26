@@ -1,0 +1,10 @@
+{
+  "name": "visitor-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Small self-hosted visitor tracker with a dashboard, for all my sites",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0"
+  }
+}

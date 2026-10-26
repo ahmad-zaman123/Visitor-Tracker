@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Visitor Tracker</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #14181f; --muted: #667085; --line: #e4e7ec;
+    --accent: #2563eb; --bar: #dbe7ff; --ok: #16a34a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--card); }
+  header h1 { font-size: 17px; margin: 0 auto 0 0; }
+  select, input, button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: hidden; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 12px; }
+  .stats { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .stat b { display: block; font-size: 28px; line-height: 1.1; }
+  .stat span { color: var(--muted); font-size: 13px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); margin-right: 6px; }
+  .row { position: relative; display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; margin: 2px 0; border-radius: 6px; }
+  .row i { position: absolute; inset: 0 auto 0 0; background: var(--bar); border-radius: 6px; z-index: 0; }
+  .row span { position: relative; z-index: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chart { display: flex; align-items: flex-end; gap: 2px; height: 120px; }
+  .chart div { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .scroll { overflow-x: auto; }
+  .empty { color: var(--muted); padding: 8px 0; }
+  .snippet { font: 13px ui-monospace, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; word-break: break-all; margin: 8px 0; }
+  #login { max-width: 320px; margin: 20vh auto; display: grid; gap: 10px; padding: 0 16px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<form id="login" hidden>
+  <h1>Visitor Tracker</h1>
+  <input id="pw" type="password" placeholder="Admin password" autocomplete="current-password" required>
+  <button class="primary">Sign in</button>
+  <div id="loginErr" class="empty"></div>
+</form>
+
+<div id="app" hidden>
+  <header>
+    <h1>Visitor Tracker</h1>
+    <select id="site" aria-label="Site"></select>
+    <select id="days" aria-label="Range">
+      <option value="1">24 hours</option><option value="7">7 days</option>
+      <option value="30" selected>30 days</option><option value="90">90 days</option>
+    </select>
+    <button id="addBtn">+ Add site</button>
+    <button id="signOut">Sign out</button>
+  </header>
+
+  <main>
+    <section id="setup" class="card" hidden></section>
+    <div id="dash" hidden>
+      <div class="card stats" style="margin-bottom:16px">
+        <div class="stat"><b id="sViews">0</b><span>Page views</span></div>
+        <div class="stat"><b id="sVisitors">0</b><span>Unique visitors</span></div>
+        <div class="stat"><b id="sNamed">0</b><span>Named visitors</span></div>
+        <div class="stat"><b><span class="dot"></span><span id="sLive" style="font-size:inherit;color:inherit">0</span></b><span>Online now</span></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px"><h2>Views per day</h2><div id="chart" class="chart"></div></div>
+
+      <div class="card" style="margin-bottom:16px"><h2>Named visitors</h2><div class="scroll" id="named"></div></div>
+
+      <div class="grid" style="margin-bottom:16px">
+        <div class="card"><h2>Top pages</h2><div id="paths"></div></div>
+        <div class="card"><h2>Referrers</h2><div id="referrers"></div></div>
+        <div class="card"><h2>Countries</h2><div id="countries"></div></div>
+        <div class="card"><h2>Devices</h2><div id="devices"></div></div>
+        <div class="card"><h2>Custom events</h2><div id="custom"></div></div>
+      </div>
+
+      <div class="card"><h2>Recent activity</h2><div class="scroll" id="recent"></div></div>
+      <div class="card" style="margin-top:16px"><h2>Install on this site</h2><div id="install"></div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let token = sessionStorage.getItem('tk_admin') || '';
+let sites = [];
+let timer;
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...opts.headers } });
+  if (r.status === 401) { signOut(); throw new Error('unauthorized'); }
+  if (!r.ok && r.status !== 204) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+  return r.status === 204 ? null : r.json();
+}
+
+function signOut() {
+  token = ''; sessionStorage.removeItem('tk_admin'); clearInterval(timer);
+  $('app').hidden = true; $('login').hidden = false;
+}
+
+$('login').onsubmit = async e => {
+  e.preventDefault();
+  token = $('pw').value;
+  try { sites = await api('/api/sites'); sessionStorage.setItem('tk_admin', token); start(); }
+  catch { $('loginErr').textContent = 'Wrong password.'; }
+};
+$('signOut').onclick = signOut;
+
+async function start() {
+  $('login').hidden = true; $('app').hidden = false;
+  await loadSites();
+  clearInterval(timer);
+  timer = setInterval(load, 30000);
+}
+
+async function loadSites(selectId) {
+  sites = await api('/api/sites');
+  $('site').innerHTML = sites.map(s => `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.domain)})</option>`).join('');
+  if (selectId) $('site').value = selectId;
+  load();
+}
+
+$('addBtn').onclick = async () => {
+  const name = prompt('Site name (e.g. Portfolio)'); if (!name) return;
+  const domain = prompt('Domain (e.g. ahmad-zaman-portfolio-3x99.vercel.app)'); if (!domain) return;
+  try { const s = await api('/api/sites', { method: 'POST', body: JSON.stringify({ name, domain }) }); await loadSites(s.id); }
+  catch (e) { alert(e.message); }
+};
+$('site').onchange = load;
+$('days').onchange = load;
+
+const bars = (rows, fmt = x => x) => {
+  if (!rows.length) return '<div class="empty">No data yet</div>';
+  const max = Math.max(...rows.map(r => r.n));
+  return rows.map(r => `<div class="row"><i style="width:${(r.n / max) * 100}%"></i><span>${esc(fmt(r.label))}</span><span>${r.n}</span></div>`).join('');
+};
+const ago = t => {
+  const s = Math.max(1, (Date.now() - new Date(t)) / 1000);
+  return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago';
+};
+const place = r => [r.city, r.country].filter(Boolean).join(', ') || '-';
+
+async function load() {
+  const id = $('site').value;
+  if (!id) { $('dash').hidden = true; $('setup').hidden = false;
+    $('setup').innerHTML = '<h2>Get started</h2><p>Add your first site with <b>+ Add site</b>, then paste the snippet it gives you into that site\'s HTML.</p>'; return; }
+  $('setup').hidden = true; $('dash').hidden = false;
+  const d = await api(`/api/stats?site=${id}&days=${$('days').value}`);
+
+  $('sViews').textContent = d.totals.views;
+  $('sVisitors').textContent = d.totals.visitors;
+  $('sNamed').textContent = d.totals.named;
+  $('sLive').textContent = d.live;
+
+  const max = Math.max(1, ...d.daily.map(x => x.views));
+  $('chart').innerHTML = d.daily.length
+    ? d.daily.map(x => `<div style="height:${(x.views / max) * 100}%" title="${x.day}: ${x.views} views, ${x.visitors} visitors"></div>`).join('')
+    : '<div class="empty">No data yet</div>';
+
+  $('named').innerHTML = d.named.length
+    ? `<table><tr><th>Name</th><th>Visits</th><th>Actions</th><th>Last seen</th><th>Location</th><th>Device</th></tr>${
+        d.named.map(n => `<tr><td><b>${esc(n.name)}</b></td><td>${n.visits}</td><td>${n.actions}</td><td>${ago(n.last_seen)}</td><td>${esc(place(n))}</td><td>${esc(n.device)}</td></tr>`).join('')}</table>`
+    : '<div class="empty">Nobody named yet. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
+
+  $('paths').innerHTML = bars(d.paths);
+  $('referrers').innerHTML = bars(d.referrers);
+  $('countries').innerHTML = bars(d.countries);
+  $('devices').innerHTML = bars(d.devices);
+  $('custom').innerHTML = bars(d.custom);
+
+  $('recent').innerHTML = d.recent.length
+    ? `<table><tr><th>When</th><th>Who</th><th>Event</th><th>Page</th><th>Location</th><th>From</th></tr>${
+        d.recent.map(r => `<tr><td>${ago(r.ts)}</td><td>${esc(r.name || 'Anonymous')}</td><td>${esc(r.event)}</td><td>${esc(r.path || '/')}</td><td>${esc(place(r))}</td><td>${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</table>`
+    : '<div class="empty">No activity yet</div>';
+
+  const s = sites.find(x => x.id === id);
+  $('install').innerHTML = `
+    <p>Paste before <code>&lt;/body&gt;</code> on <b>${esc(s.domain)}</b>:</p>
+    <div class="snippet">&lt;script defer src="${location.origin}/t.js" data-site="${esc(id)}"&gt;&lt;/script&gt;</div>
+    <p>Name a visitor by sending <code>https://${esc(s.domain)}/?ref=Sara-Acme</code>. Log actions with <code>tracker.track('clicked-resume')</code>.</p>
+    <button id="delBtn">Delete this site and its data</button>`;
+  $('delBtn').onclick = async () => {
+    if (!confirm(`Delete ${s.name} and all its events?`)) return;
+    await api('/api/sites?id=' + id, { method: 'DELETE' }); loadSites();
+  };
+}
+
+if (token) api('/api/sites').then(start).catch(() => { $('login').hidden = false; });
+else $('login').hidden = false;
+</script>
+</body>
+</html>
