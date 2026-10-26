@@ -52,3 +52,16 @@ export function parseUA(ua = '') {
 export function clip(v, n) {
   return typeof v === 'string' && v ? v.slice(0, n) : null;
 }
+
+// "https://www.My-Site.vercel.app/path" -> "my-site.vercel.app"
+export function cleanDomain(v) {
+  return String(v ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/[\/?#].*$/, '').replace(/^www\./, '');
+}
+export function validDomain(d) {
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$|^localhost$/.test(d);
+}
+
+// Days to keep events. Never below 30, so a mistyped value cannot wipe recent data.
+export function retentionDays() {
+  return Math.max(parseInt(process.env.RETENTION_DAYS, 10) || 180, 30);
+}

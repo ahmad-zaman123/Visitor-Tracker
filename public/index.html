@@ -90,6 +90,36 @@
     .rt td.pri { order: -1; font-weight: 600; justify-content: flex-start; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
     .rt td.pri::before { content: none; }
   }
+  .body { display: block; }
+  .sidebar { display: none; }
+  @media (min-width: 960px) {
+    .body { display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+    .sidebar { display: block; border-right: 1px solid var(--line); }
+    header #site { display: none; }
+  }
+  .sidein { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 16px 12px; }
+  .sidehead { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 8px 8px; }
+  .sideitem { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 8px; text-align: left; background: none; border: 0; border-radius: 8px; padding: 8px 10px; margin-bottom: 2px; }
+  .sideitem:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .sideitem.on { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .si-text { display: grid; min-width: 0; }
+  .sideitem b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sideitem small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .si-n { font-size: 12px; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; flex: none; }
+  #stBtn { margin-right: auto; padding: 3px 10px; font-size: 12px; }
+  #settings { display: grid; gap: 16px; max-width: 680px; }
+  .sttitle { margin: 0; font-size: 20px; }
+  .stform { display: grid; gap: 14px; }
+  .stform label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .stform small { font-size: 12px; }
+  .stform input { width: 100%; }
+  .stid { margin: 0; font-size: 12px; color: var(--muted); }
+  .msg-ok { color: var(--ok); margin: 0; font-size: 13px; }
+  .msg-err { color: #dc2626; margin: 0; font-size: 13px; }
+  .warn { background: color-mix(in srgb, #f59e0b 14%, var(--card)); border: 1px solid color-mix(in srgb, #f59e0b 45%, var(--line)); border-radius: 8px; padding: 8px 10px; }
+  .card.dz { border-color: color-mix(in srgb, #dc2626 40%, var(--line)); }
+  button.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
+  button.danger-outline { color: #dc2626; border-color: #dc2626; }
   .theme-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; }
   #login .theme-toggle { position: fixed; top: 12px; right: 12px; }
   .statusbar { display: flex; justify-content: flex-end; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin-bottom: -8px; }
@@ -188,8 +218,10 @@
     <button type="button" class="theme-toggle" data-theme-toggle></button>
   </header>
 
+  <div class="body">
+  <aside class="sidebar" aria-label="Sites"><div class="sidein"><p class="sidehead">Sites</p><div id="sideList"></div></div></aside>
   <main>
-    <div class="statusbar"><span id="updated" aria-live="polite"></span><button id="refreshBtn" type="button">↻ Refresh</button></div>
+    <div class="statusbar"><button id="stBtn" type="button" hidden>Settings</button><span id="updated" aria-live="polite"></span><button id="refreshBtn" type="button">↻ Refresh</button></div>
     <div id="banner" class="banner" role="alert" hidden><span id="bannerMsg"></span><button id="retryBtn" type="button">Retry</button></div>
     <section id="setup" class="card" hidden></section>
     <div id="overview" hidden>
@@ -201,6 +233,32 @@
       </div>
       <div class="sites-grid" id="siteGrid"></div>
       <div class="card" style="margin-top:16px"><h2>Recently named visitors</h2><div class="scroll" id="ovRecent"></div></div>
+    </div>
+    <div id="settings" hidden>
+      <h2 class="sttitle" id="stTitle"></h2>
+      <div class="card">
+        <h2>Site details</h2>
+        <form id="stForm" class="stform" novalidate>
+          <label>Site name<input id="stName" maxlength="80" autocomplete="off"></label>
+          <label>Domain<input id="stDomain" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
+            <small>Visits from the old address stop being recorded within a minute of saving a new one.</small></label>
+          <p class="stid">Site id <code id="stId"></code></p>
+          <p id="stMsg" role="status" hidden></p>
+          <div><button class="primary" id="stSave" disabled>Save changes</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Install</h2>
+        <p style="margin:0 0 8px">Paste this before <code>&lt;/body&gt;</code> on your site:</p>
+        <div class="snippet" id="stSnippet"></div>
+        <button type="button" id="stCopy" data-act="copy-snippet">Copy snippet</button>
+      </div>
+      <div class="card"><h2>Data</h2><div id="stData"></div></div>
+      <div class="card dz">
+        <h2>Danger zone</h2>
+        <p style="margin:0 0 10px">Deleting a site removes it and every visit recorded for it. This can't be undone.</p>
+        <button type="button" id="stDelete" class="danger-outline">Delete this site…</button>
+      </div>
     </div>
     <div id="dash" hidden>
       <div id="firstRun" class="card" style="margin-bottom:16px" hidden></div>
@@ -263,7 +321,15 @@
       <div class="card" style="margin-top:16px"><h2>Install on this site</h2><div id="install"></div></div>
     </div>
   </main>
+  </div>
 </div>
+
+<dialog id="confirmDlg" aria-labelledby="cfTitle">
+  <h2 id="cfTitle"></h2>
+  <p id="cfMsg" style="margin:0 0 12px"></p>
+  <label id="cfTypeWrap" hidden><span>Type <b id="cfWord"></b> to confirm</span><input id="cfInput" autocomplete="off" spellcheck="false"></label>
+  <div class="dlgfoot"><button type="button" id="cfCancel">Cancel</button><button type="button" id="cfOk">Confirm</button></div>
+</dialog>
 
 <dialog id="addDlg" aria-labelledby="addTitle">
   <div id="addStep1">
@@ -341,7 +407,7 @@ document.addEventListener('click', e => {
 paintThemeBtns();
 
 // ---- Loading, errors, "updated" stamp.
-let lastUpdated = 0, loadSeq = 0, wantSite = null;
+let lastUpdated = 0, loadSeq = 0, wantSite = null, settingsOpen = false, stDirty = false, lastSettings = null;
 const since = ms => { const s = Math.floor(ms / 1000); return s < 5 ? 'just now' : s < 60 ? s + 's ago' : s < 3600 ? Math.floor(s / 60) + 'm ago' : Math.floor(s / 3600) + 'h ago'; };
 function paintUpdated() {
   $('updated').textContent = lastUpdated ? 'Updated ' + since(Date.now() - lastUpdated) : '';
@@ -371,6 +437,7 @@ function syncUrl() {
   const site = $('site').value;
   const u = new URLSearchParams();
   if (site) u.set('site', site === ALL ? 'all' : site);
+  if (settingsOpen && site && site !== ALL) u.set('view', 'settings');
   if (days !== 30) u.set('range', days);
   if (nm.q.trim()) u.set('q', nm.q.trim());
   if (rc.who !== 'all') u.set('who', rc.who);
@@ -388,6 +455,7 @@ function initFromUrl() {
   if ([1, 7, 30, 90].includes(range)) days = range;
   document.querySelectorAll('#range button').forEach(b => b.classList.toggle('on', Number(b.dataset.days) === days));
   wantSite = u.get('site') || (u.has('range') ? null : saved.site) || null;
+  settingsOpen = u.get('view') === 'settings';
   nm.q = u.get('q') || '';
   $('nmSearch').value = nm.q;
   if (['named', 'anon'].includes(u.get('who'))) rc.who = u.get('who');
@@ -435,20 +503,47 @@ async function start() {
   $('login').hidden = true; $('app').hidden = false;
   await loadSites();
   clearInterval(timer);
-  timer = setInterval(() => load({ quiet: true }), 30000);
+  timer = setInterval(() => { refreshSites(); load({ quiet: true }); }, 30000);
 }
 
 const ALL = '__all';
 
-async function loadSites(selectId) {
-  sites = await api('/api/sites');
+const compact = n => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n));
+function paintSidebar() {
+  const cur = $('site').value;
+  const items = sites.length > 1 ? [{ id: ALL, name: 'All sites', sub: `${sites.length} sites`, n: sites.reduce((a, s) => a + Number(s.events_30d), 0) }] : [];
+  sites.forEach(s => items.push({ id: s.id, name: s.name, sub: s.domain, n: Number(s.events_30d) }));
+  $('sideList').innerHTML = items.map(i => `<button type="button" class="sideitem${i.id === cur ? ' on' : ''}" data-id="${esc(i.id)}"${i.id === cur ? ' aria-current="page"' : ''}><span class="si-text"><b>${esc(i.name)}</b><small>${esc(i.sub)}</small></span><span class="si-n" title="Events in the last 30 days">${compact(i.n)}</span></button>`).join('');
+}
+// Rebuilds the dropdown (phones) and the sidebar (wide screens) from `sites`, keeping the current choice.
+function renderSiteList() {
+  const cur = $('site').value;
   const all = sites.length > 1 ? `<option value="${ALL}">All sites</option>` : '';
   $('site').innerHTML = all + sites.map(s => `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.domain)})</option>`).join('');
+  if ([...$('site').options].some(o => o.value === cur)) $('site').value = cur;
+  paintSidebar();
+}
+async function refreshSites() {
+  try { sites = await api('/api/sites'); renderSiteList(); } catch { /* the main refresh reports connection problems */ }
+}
+function selectSite(id) {
+  $('site').value = id;
+  settingsOpen = false;
+  updateLink(); resetFilters(); syncUrl(); paintSidebar(); load();
+}
+$('site').onchange = () => selectSite($('site').value);
+$('sideList').addEventListener('click', e => { const b = e.target.closest('.sideitem'); if (b) selectSite(b.dataset.id); });
+
+async function loadSites(selectId) {
+  sites = await api('/api/sites');
+  renderSiteList();
   const h = !selectId && hashTarget();
   const fromUrl = wantSite === 'all' ? (sites.length > 1 ? ALL : null) : (sites.some(x => x.id === wantSite) ? wantSite : null);
   wantSite = null;
   const want = selectId || (h && sites.some(x => x.id === h.site) ? h.site : null) || fromUrl || (sites.length > 1 ? ALL : sites[0]?.id);
   if (want) $('site').value = want;
+  if (selectId || !$('site').value || $('site').value === ALL) settingsOpen = false;
+  paintSidebar();
   updateLink();
   if (selectId) resetFilters();
   syncUrl();
@@ -459,11 +554,14 @@ async function loadSites(selectId) {
 // Jump from the overview into one site, optionally straight to a visitor's timeline.
 async function goSite(id, name) {
   $('site').value = id;
-  updateLink(); resetFilters();
+  settingsOpen = false;
+  paintSidebar();
+  updateLink(); resetFilters(); syncUrl();
   await load();
   if (name) openVisitor(name);
 }
 
+const domainOk = d => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$|^localhost$/.test(d);
 const cleanDomain = v => v.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/[\/?#].*$/, '').replace(/^www\./, '');
 const snippetFor = id => `<script defer src="${location.origin}/t.js" data-site="${id}"><\/script>`;
 const adErr = msg => { $('adErr').textContent = msg || ''; $('adErr').hidden = !msg; };
@@ -483,7 +581,7 @@ $('addForm').onsubmit = async e => {
   const name = $('adName').value.trim();
   const domain = cleanDomain($('adDomain').value);
   if (!name) { adErr('Give the site a name.'); $('adName').focus(); return; }
-  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$|^localhost$/.test(domain)) {
+  if (!domainOk(domain)) {
     adErr('Enter a domain like mysite.vercel.app.'); $('adDomain').focus(); return;
   }
   adErr(''); $('adSubmit').disabled = true; $('adSubmit').textContent = 'Adding…';
@@ -510,7 +608,6 @@ $('adCopy').onclick = async () => {
   $('adCopy').textContent = 'Copied';
   setTimeout(() => { $('adCopy').textContent = 'Copy snippet'; }, 1500);
 };
-$('site').onchange = () => { updateLink(); resetFilters(); syncUrl(); load(); };
 let days = 30;
 $('range').onclick = e => {
   const b = e.target.closest('button[data-days]');
@@ -559,14 +656,18 @@ async function load({ quiet = false, soft = false } = {}) {
     if (seq === loadSeq) { setLoading(false); $('refreshBtn').disabled = false; $('refreshBtn').textContent = '↻ Refresh'; }
   }
 }
-$('refreshBtn').onclick = () => load({ soft: true });
+$('refreshBtn').onclick = () => { refreshSites(); load({ soft: true }); };
 $('retryBtn').onclick = () => load();
 
 async function loadView(seq) {
   const id = $('site').value;
-  if (!id) { $('dash').hidden = true; $('overview').hidden = true; $('setup').hidden = false;
+  if (!id) { $('dash').hidden = true; $('overview').hidden = true; $('settings').hidden = true; $('stBtn').hidden = true; $('setup').hidden = false;
     $('setup').innerHTML = '<h2>Get started</h2><p>Add your first site with <b>+ Add site</b>, then paste the snippet it gives you into that site\'s HTML.</p>'; return; }
   $('setup').hidden = true;
+  $('stBtn').hidden = id === ALL;
+  $('stBtn').textContent = settingsOpen ? '← Dashboard' : 'Settings';
+  if (id !== ALL && settingsOpen) { $('dash').hidden = true; $('overview').hidden = true; $('settings').hidden = false; return loadSettings(id, seq); }
+  $('settings').hidden = true;
   if (id === ALL) { $('dash').hidden = true; $('overview').hidden = false; return loadOverview(seq); }
   $('overview').hidden = true; $('dash').hidden = false;
   updateLink();
@@ -611,12 +712,7 @@ async function loadView(seq) {
   $('install').innerHTML = `
     <p>Paste before <code>&lt;/body&gt;</code> on <b>${esc(s.domain)}</b>:</p>
     <div class="snippet">&lt;script defer src="${location.origin}/t.js" data-site="${esc(id)}"&gt;&lt;/script&gt;</div>
-    <p>Name a visitor by sending <code>https://${esc(s.domain)}/?ref=Sara-Acme</code>. Log actions with <code>tracker.track('clicked-resume')</code>.</p>
-    <button id="delBtn">Delete this site and its data</button>`;
-  $('delBtn').onclick = async () => {
-    if (!confirm(`Delete ${s.name} and all its events?`)) return;
-    await api('/api/sites?id=' + id, { method: 'DELETE' }); loadSites();
-  };
+    <p>Name a visitor by sending <code>https://${esc(s.domain)}/?ref=Sara-Acme</code>. Log actions with <code>tracker.track('clicked-resume')</code>.</p>`;
 }
 
 const fmtDate = t => new Date(t).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -624,6 +720,96 @@ const fmtTime = t => new Date(t).toLocaleTimeString(undefined, { hour: '2-digit'
 const fmtFull = t => `${fmtDate(t)}, ${fmtTime(t)}`;
 const dur = ms => { const m = Math.round(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
 let lastFocus = null;
+
+// ---- Confirmation dialog. With requireText the user has to type that text before the button unlocks.
+function confirmDialog({ title, message, confirmText = 'Confirm', danger = false, requireText = '' }) {
+  return new Promise(resolve => {
+    const dlg = $('confirmDlg');
+    let result = false;
+    $('cfTitle').textContent = title;
+    $('cfMsg').textContent = message;
+    $('cfOk').textContent = confirmText;
+    $('cfOk').className = danger ? 'danger' : 'primary';
+    $('cfOk').disabled = Boolean(requireText);
+    $('cfTypeWrap').hidden = !requireText;
+    $('cfWord').textContent = requireText;
+    $('cfInput').value = '';
+    $('cfInput').oninput = () => { $('cfOk').disabled = $('cfInput').value.trim().toLowerCase() !== requireText.toLowerCase(); };
+    $('cfOk').onclick = () => { result = true; dlg.close(); };
+    $('cfCancel').onclick = () => dlg.close();
+    dlg.addEventListener('close', () => resolve(result), { once: true });
+    dlg.showModal();
+    (requireText ? $('cfInput') : $('cfCancel')).focus();
+  });
+}
+
+// ---- Site settings
+const stMsg = (text, ok) => { $('stMsg').hidden = !text; $('stMsg').textContent = text || ''; $('stMsg').className = ok ? 'msg-ok' : 'msg-err'; };
+function stCheckDirty() {
+  const site = sites.find(x => x.id === $('site').value);
+  stDirty = Boolean(site) && ($('stName').value.trim() !== site.name || cleanDomain($('stDomain').value) !== site.domain);
+  $('stSave').disabled = !stDirty;
+}
+$('stName').oninput = $('stDomain').oninput = stCheckDirty;
+
+async function loadSettings(id, seq) {
+  const d = await api('/api/settings');
+  if (seq !== loadSeq) return;
+  const site = sites.find(x => x.id === id);
+  if (!site) return;
+  lastSettings = d;
+  $('stTitle').textContent = `Settings · ${site.name}`;
+  if (!stDirty) { $('stName').value = site.name; $('stDomain').value = site.domain; $('stSave').disabled = true; }
+  $('stId').textContent = site.id;
+  $('stSnippet').textContent = snippetFor(id);
+  $('stCopy').dataset.text = snippetFor(id);
+  const st = d.sites.find(x => x.site_id === id);
+  const since = st?.oldest ? `, going back to ${new Date(st.oldest).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : '';
+  $('stData').innerHTML = `<p style="margin-top:0"><b>${new Intl.NumberFormat().format(st?.total ?? 0)}</b> events stored${esc(since)}.</p>
+    <p>Events are kept for <b>${d.retentionDays} days</b>. Older ones are deleted automatically every day at 03:00 UTC.</p>
+    ${d.cronConfigured ? '' : '<p class="warn">⚠ Automatic cleanup is switched off. Add a <code>CRON_SECRET</code> environment variable in Vercel and redeploy to turn it on.</p>'}`;
+}
+
+$('stBtn').onclick = () => { settingsOpen = !settingsOpen; stDirty = false; stMsg(''); syncUrl(); load(); };
+
+$('stForm').onsubmit = async e => {
+  e.preventDefault();
+  const id = $('site').value;
+  const name = $('stName').value.trim();
+  const domain = cleanDomain($('stDomain').value);
+  if (!name) { stMsg('Give the site a name.'); $('stName').focus(); return; }
+  if (!domainOk(domain)) { stMsg('Enter a domain like mysite.vercel.app.'); $('stDomain').focus(); return; }
+  $('stSave').disabled = true; $('stSave').textContent = 'Saving…'; stMsg('');
+  try {
+    const row = await api('/api/sites?id=' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ name, domain }) });
+    sites = sites.map(x => (x.id === id ? { ...x, name: row.name, domain: row.domain } : x));
+    renderSiteList(); updateLink();
+    $('stName').value = row.name; $('stDomain').value = row.domain; $('stTitle').textContent = `Settings · ${row.name}`;
+    stDirty = false;
+    stMsg('Saved.', true);
+  } catch (err) {
+    stMsg(err.message || 'Could not save.');
+    stCheckDirty();
+  } finally { $('stSave').textContent = 'Save changes'; }
+};
+
+$('stDelete').onclick = async () => {
+  const id = $('site').value;
+  const site = sites.find(x => x.id === id);
+  if (!site) return;
+  const total = lastSettings?.sites.find(x => x.site_id === id)?.total ?? 0;
+  const ok = await confirmDialog({
+    title: `Delete ${site.name}?`,
+    message: `This permanently deletes the site and ${total ? 'all ' + new Intl.NumberFormat().format(total) + ' events' : 'its data'}. This can't be undone.`,
+    confirmText: 'Delete site', danger: true, requireText: site.name,
+  });
+  if (!ok) return;
+  try {
+    await api('/api/sites?id=' + encodeURIComponent(id), { method: 'DELETE' });
+    settingsOpen = false; stDirty = false;
+    await loadSites();
+  } catch (err) { stMsg(err.message || 'Could not delete the site.'); }
+};
 
 async function loadOverview(seq) {
   const d = await api(`/api/overview?days=${days}`);
