@@ -42,7 +42,15 @@
   .scroll { overflow-x: auto; }
   .empty { color: var(--muted); padding: 8px 0; }
   .snippet { font: 13px ui-monospace, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; word-break: break-all; margin: 8px 0; }
-  #login { max-width: 320px; margin: 20vh auto; display: grid; gap: 10px; padding: 0 16px; }
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .logincard { width: min(360px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 28px 24px; display: grid; gap: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .06); }
+  .logo { width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: #fff; display: grid; place-items: center; }
+  .logincard h1 { margin: 6px 0 0; font-size: 22px; }
+  .logincard .sub { margin: 0; color: var(--muted); }
+  .pwfield { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .pwwrap { position: relative; display: block; }
+  .pwwrap input { width: 100%; padding-right: 64px; }
+  .pwwrap button { position: absolute; right: 4px; top: 4px; bottom: 4px; border: 0; background: none; color: var(--accent); padding: 0 10px; font-size: 13px; }
   .pills { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
   .pills button { border: 0; border-radius: 0; background: none; padding: 6px 12px; }
   .pills button + button { border-left: 1px solid var(--line); }
@@ -90,6 +98,8 @@
   @keyframes pulse { 50% { opacity: .55; } }
   .is-loading .card, .is-loading .sitecard { animation: pulse 1.1s ease-in-out infinite; }
   @media (prefers-reduced-motion: reduce) { .is-loading .card, .is-loading .sitecard { animation: none; opacity: .6; } }
+  time[title] { text-decoration: underline dotted color-mix(in srgb, var(--muted) 55%, transparent); text-underline-offset: 3px; cursor: help; }
+  .empty p { margin: 0 0 8px; }
   .namebtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
   .namebtn:hover, .ovname:hover { text-decoration: underline; }
   .ovname { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
@@ -153,10 +163,16 @@
 
 <form id="login" hidden>
   <button type="button" class="theme-toggle" data-theme-toggle></button>
-  <h1>Visitor Tracker</h1>
-  <input id="pw" type="password" placeholder="Admin password" autocomplete="current-password" required>
-  <button class="primary">Sign in</button>
-  <div id="loginErr" class="empty"></div>
+  <div class="logincard">
+    <div class="logo" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></div>
+    <h1>Visitor Tracker</h1>
+    <p class="sub">Sign in to see who's visiting your sites.</p>
+    <label class="pwfield">Password
+      <span class="pwwrap"><input id="pw" type="password" autocomplete="current-password" required><button type="button" id="pwToggle" aria-label="Show password" aria-pressed="false">Show</button></span>
+    </label>
+    <button class="primary" id="loginBtn">Sign in</button>
+    <p id="loginErr" class="err" role="alert" hidden></p>
+  </div>
 </form>
 
 <div id="app" hidden>
@@ -187,6 +203,7 @@
       <div class="card" style="margin-top:16px"><h2>Recently named visitors</h2><div class="scroll" id="ovRecent"></div></div>
     </div>
     <div id="dash" hidden>
+      <div id="firstRun" class="card" style="margin-bottom:16px" hidden></div>
       <div class="card stats" style="margin-bottom:16px">
         <div class="stat"><b id="sViews">0</b><span>Page views</span><small id="dViews"></small></div>
         <div class="stat"><b id="sVisitors">0</b><span>Unique visitors</span><small id="dVisitors"></small></div>
@@ -297,6 +314,23 @@ function paintThemeBtns() {
     b.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${dark ? SUN : MOON}"/></svg>`;
   });
 }
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
+  }
+}
+document.addEventListener('click', async e => {
+  const a = e.target.closest('[data-act]');
+  if (!a) return;
+  if (a.dataset.act === 'make-link') { $('lkName').scrollIntoView({ block: 'center', behavior: 'smooth' }); $('lkName').focus({ preventScroll: true }); }
+  else if (a.dataset.act === 'show-install') $('install').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  else if (a.dataset.act === 'copy-snippet') {
+    await copyText(a.dataset.text);
+    a.textContent = 'Copied';
+    setTimeout(() => { a.textContent = 'Copy snippet'; }, 1500);
+  }
+});
 document.addEventListener('click', e => {
   if (!e.target.closest('[data-theme-toggle]')) return;
   const next = curTheme() === 'dark' ? 'light' : 'dark';
@@ -309,7 +343,10 @@ paintThemeBtns();
 // ---- Loading, errors, "updated" stamp.
 let lastUpdated = 0, loadSeq = 0, wantSite = null;
 const since = ms => { const s = Math.floor(ms / 1000); return s < 5 ? 'just now' : s < 60 ? s + 's ago' : s < 3600 ? Math.floor(s / 60) + 'm ago' : Math.floor(s / 3600) + 'h ago'; };
-function paintUpdated() { $('updated').textContent = lastUpdated ? 'Updated ' + since(Date.now() - lastUpdated) : ''; }
+function paintUpdated() {
+  $('updated').textContent = lastUpdated ? 'Updated ' + since(Date.now() - lastUpdated) : '';
+  $('updated').title = lastUpdated ? new Date(lastUpdated).toLocaleString() : '';
+}
 setInterval(paintUpdated, 10000);
 
 function showBanner(msg) {
@@ -369,13 +406,28 @@ async function api(path, opts = {}) {
 function signOut() {
   token = ''; sessionStorage.removeItem('tk_admin'); clearInterval(timer); lastUpdated = 0; showBanner('');
   $('app').hidden = true; $('login').hidden = false;
+  $('pw').value = ''; $('pw').focus();
 }
 
+$('pwToggle').onclick = () => {
+  const show = $('pw').type === 'password';
+  $('pw').type = show ? 'text' : 'password';
+  $('pwToggle').textContent = show ? 'Hide' : 'Show';
+  $('pwToggle').setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  $('pwToggle').setAttribute('aria-pressed', String(show));
+};
 $('login').onsubmit = async e => {
   e.preventDefault();
   token = $('pw').value;
+  $('loginErr').hidden = true;
+  $('loginBtn').disabled = true; $('loginBtn').textContent = 'Signing in…';
   try { sites = await api('/api/sites'); sessionStorage.setItem('tk_admin', token); start(); }
-  catch { $('loginErr').textContent = 'Wrong password.'; }
+  catch (err) {
+    $('loginErr').textContent = err.message === 'unauthorized' ? 'Wrong password. Try again.'
+      : err instanceof TypeError ? "Can't reach the server. Check your connection." : `Something went wrong (${err.message}).`;
+    $('loginErr').hidden = false;
+    $('pw').select();
+  } finally { $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign in'; }
 };
 $('signOut').onclick = signOut;
 
@@ -470,7 +522,7 @@ $('range').onclick = e => {
 };
 
 const bars = (rows, fmt = x => x) => {
-  if (!rows.length) return '<div class="empty">No data yet</div>';
+  if (!rows.length) return '<div class="empty">Nothing in this range yet.</div>';
   const max = Math.max(...rows.map(r => r.n));
   return rows.map(r => `<div class="row"><i style="width:${(r.n / max) * 100}%"></i><span>${esc(fmt(r.label))}</span><span>${r.n}</span></div>`).join('');
 };
@@ -478,7 +530,21 @@ const ago = t => {
   const s = Math.max(1, (Date.now() - new Date(t)) / 1000);
   return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago';
 };
-const place = r => [r.city, r.country].filter(Boolean).join(', ') || '-';
+// Country codes become names with a flag. Flag emoji show as plain letters on Windows, which is still readable.
+const regionNames = (() => { try { return new Intl.DisplayNames(undefined, { type: 'region' }); } catch { return null; } })();
+const flagOf = c => (/^[A-Z]{2}$/.test(c || '') ? String.fromCodePoint(...[...c].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65)) : '');
+function countryName(c) {
+  if (!c || c === '??') return 'Unknown';
+  try { return regionNames?.of(c) || c; } catch { return c; }
+}
+const countryLabel = c => [flagOf(c), countryName(c)].filter(Boolean).join(' ');
+const place = r => {
+  const where = [r.city, r.country ? countryName(r.country) : ''].filter(Boolean).join(', ');
+  return where ? [flagOf(r.country), where].filter(Boolean).join(' ') : '-';
+};
+
+// A relative time that shows the exact time on hover.
+const agoEl = t => `<time datetime="${esc(t)}" title="${esc(new Date(t).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }))}">${esc(ago(t))}</time>`;
 
 async function load({ quiet = false, soft = false } = {}) {
   const seq = ++loadSeq;
@@ -518,12 +584,23 @@ async function loadView(seq) {
   $('chartTitle').textContent = d.days === 1 ? 'Traffic by hour' : 'Traffic by day';
   renderChart(d);
 
+  // A site that has never received an event gets a setup card instead of a wall of zeros.
+  const never = d.totals.views === 0 && d.recent.length === 0;
+  $('firstRun').hidden = !never;
+  if (never) {
+    const site = sites.find(x => x.id === id);
+    $('firstRun').innerHTML = `<h2>Waiting for the first visit</h2>
+      <p style="margin:0 0 8px">Paste this before <code>&lt;/body&gt;</code> on <b>${esc(site?.domain || '')}</b>, deploy, then open the site once.</p>
+      <div class="snippet">${esc(snippetFor(id))}</div>
+      <button data-act="copy-snippet" data-text="${esc(snippetFor(id))}">Copy snippet</button>`;
+  }
+
   lastData = d;
   renderNamed();
 
   $('paths').innerHTML = bars(d.paths);
   $('referrers').innerHTML = bars(d.referrers);
-  $('countries').innerHTML = bars(d.countries);
+  $('countries').innerHTML = bars(d.countries, countryLabel);
   $('devices').innerHTML = bars(d.devices);
   $('custom').innerHTML = bars(d.custom);
 
@@ -573,14 +650,14 @@ async function loadOverview(seq) {
       <div class="sc-delta">${never ? '' : delta(x.totals.views, x.prev.views, vs)}</div>
       <div class="sc-row">${never ? 'No visits yet. Open it to get the install snippet.' : `${x.totals.visitors} visitor${x.totals.visitors === 1 ? '' : 's'} · ${x.totals.named} named`}</div>
       ${spark}
-      <div class="sc-foot">${never ? '' : `Last visit ${ago(x.last_seen)}`}</div>
+      <div class="sc-foot">${never ? '' : `Last visit ${agoEl(x.last_seen)}`}</div>
     </button>`;
   }).join('') || '<div class="empty">No sites yet.</div>';
 
   const siteName = Object.fromEntries(d.sites.map(x => [x.id, x.name]));
   $('ovRecent').innerHTML = d.recent.length
     ? `<table class="rt"><thead><tr><th>Name</th><th>Site</th><th>Visits</th><th>Location</th><th>Last seen</th></tr></thead><tbody>${
-        d.recent.map(r => `<tr><td class="pri"><button class="ovname" data-site="${esc(r.site_id)}" data-name="${esc(r.name)}">${esc(r.name)}</button></td><td data-label="Site">${esc(siteName[r.site_id] || r.site_id)}</td><td data-label="Visits">${r.visits}</td><td data-label="Location">${esc(place(r))}</td><td data-label="Last seen">${ago(r.last_seen)}</td></tr>`).join('')}</tbody></table>`
+        d.recent.map(r => `<tr><td class="pri"><button class="ovname" data-site="${esc(r.site_id)}" data-name="${esc(r.name)}">${esc(r.name)}</button></td><td data-label="Site">${esc(siteName[r.site_id] || r.site_id)}</td><td data-label="Visits">${r.visits}</td><td data-label="Location">${esc(place(r))}</td><td data-label="Last seen">${agoEl(r.last_seen)}</td></tr>`).join('')}</tbody></table>`
     : '<div class="empty">Nobody named in this range. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
 }
 $('overview').addEventListener('click', e => {
@@ -599,7 +676,7 @@ const SORTABLE = [['name', 'Name'], ['visits', 'Visits'], ['actions', 'Actions']
 function renderNamed() {
   const all = lastData.named;
   if (!all.length) {
-    $('named').innerHTML = '<div class="empty">Nobody named yet. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
+    $('named').innerHTML = '<div class="empty"><p>Nobody has been named yet. Send someone a link with their name in it, like <code>?ref=Sara-Acme</code>, and their visits show up here.</p><button data-act="make-link">Create a visitor link</button></div>';
     $('nmCount').textContent = '';
     return;
   }
@@ -612,7 +689,7 @@ function renderNamed() {
   if (!rows.length) { $('named').innerHTML = `<div class="empty">No names match “${esc(nm.q.trim())}”.</div>`; return; }
   const th = SORTABLE.map(([k, label]) => `<th aria-sort="${nm.key === k ? (nm.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn" data-k="${k}">${label}${nm.key === k ? (nm.dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`);
   $('named').innerHTML = `<table class="rt"><thead><tr>${th.slice(0, 1).join('')}${th.slice(1).join('')}<th>Location</th><th>Device</th></tr></thead><tbody>${
-    rows.map(n => `<tr><td class="pri"><button class="namebtn" data-name="${esc(n.name)}">${esc(n.name)}</button></td><td data-label="Visits">${n.visits}</td><td data-label="Actions">${n.actions}</td><td data-label="Last seen">${ago(n.last_seen)}</td><td data-label="Location">${esc(place(n))}</td><td data-label="Device">${esc(n.device)}</td></tr>`).join('')}</tbody></table>`;
+    rows.map(n => `<tr><td class="pri"><button class="namebtn" data-name="${esc(n.name)}">${esc(n.name)}</button></td><td data-label="Visits">${n.visits}</td><td data-label="Actions">${n.actions}</td><td data-label="Last seen">${agoEl(n.last_seen)}</td><td data-label="Location">${esc(place(n))}</td><td data-label="Device">${esc(n.device)}</td></tr>`).join('')}</tbody></table>`;
 }
 
 function setSort(key, dir) {
@@ -635,17 +712,17 @@ function fillRecentFilters() {
   const ev = [...new Set(lastData.recent.map(r => r.event))].sort((a, b) => (a === 'pageview' ? -1 : b === 'pageview' ? 1 : a.localeCompare(b)));
   const co = [...new Set(lastData.recent.map(r => r.country).filter(Boolean))].sort();
   setOptions($('rcEvent'), 'event', 'All events', ev, v => (v === 'pageview' ? 'Page views' : v));
-  setOptions($('rcCountry'), 'country', 'All countries', co, v => v);
+  setOptions($('rcCountry'), 'country', 'All countries', co, countryLabel);
 }
 function renderRecent() {
   const all = lastData.recent;
-  if (!all.length) { $('recent').innerHTML = '<div class="empty">No activity yet</div>'; $('rcCount').textContent = ''; return; }
+  if (!all.length) { $('recent').innerHTML = '<div class="empty"><p>No activity yet. Once the snippet is on your site, visits show up here within a few seconds.</p><button data-act="show-install">Show the install snippet</button></div>'; $('rcCount').textContent = ''; return; }
   const rows = all.filter(r => (rc.who === 'all' || (rc.who === 'named') === !!r.name)
     && (rc.event === 'all' || r.event === rc.event) && (rc.country === 'all' || r.country === rc.country));
   $('rcCount').textContent = `${rows.length} of the latest ${all.length}`;
   if (!rows.length) { $('recent').innerHTML = '<div class="empty">Nothing matches these filters.</div>'; return; }
   $('recent').innerHTML = `<table class="rt"><thead><tr><th>When</th><th>Who</th><th>Event</th><th>Page</th><th>Location</th><th>From</th></tr></thead><tbody>${
-    rows.map(r => `<tr><td data-label="When">${ago(r.ts)}</td><td class="pri">${r.name ? `<button class="namebtn" data-name="${esc(r.name)}">${esc(r.name)}</button>` : 'Anonymous'}</td><td data-label="Event">${esc(r.event)}</td><td data-label="Page">${esc(r.path || '/')}</td><td data-label="Location">${esc(place(r))}</td><td data-label="From">${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</tbody></table>`;
+    rows.map(r => `<tr><td data-label="When">${agoEl(r.ts)}</td><td class="pri">${r.name ? `<button class="namebtn" data-name="${esc(r.name)}">${esc(r.name)}</button>` : 'Anonymous'}</td><td data-label="Event">${esc(r.event)}</td><td data-label="Page">${esc(r.path || '/')}</td><td data-label="Location">${esc(place(r))}</td><td data-label="From">${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</tbody></table>`;
 }
 $('rcWho').onclick = e => {
   const b = e.target.closest('button[data-v]');
@@ -698,7 +775,7 @@ function fillBuckets(daily, nDays) {
 function renderChart(d) {
   const { hourly, rows } = fillBuckets(d.daily, d.days);
   const n = rows.length;
-  if (!d.totals.views) { $('chart').innerHTML = '<div class="empty">No data yet</div>'; $('xaxis').innerHTML = ''; return; }
+  if (!d.totals.views) { $('chart').innerHTML = '<div class="empty">No visits in this range. Try a longer one.</div>'; $('xaxis').innerHTML = ''; return; }
   const max = Math.max(1, ...rows.map(r => r.views));
   $('chart').innerHTML = rows.map((r, i) =>
     `<div class="col" data-i="${i}"><div class="b" style="height:${(r.views / max) * 100}%"><div class="u" style="height:${r.views ? (r.visitors / r.views) * 100 : 0}%"></div></div></div>`).join('');
@@ -765,7 +842,7 @@ function groupSessions(events) {
 
 function renderVisitor(d) {
   const last = d.events[0];
-  const place = [last.city, last.country].filter(Boolean).join(', ') || '-';
+  const loc = place(last);
   const sessions = groupSessions(d.events);
   $('vbody').innerHTML = `
     <div class="chips">
@@ -773,7 +850,7 @@ function renderVisitor(d) {
       <div class="chip"><b>${d.actions}</b><span>Actions</span></div>
       <div class="chip"><b>${esc(fmtFull(d.first_seen))}</b><span>First seen</span></div>
       <div class="chip"><b>${esc(fmtFull(d.last_seen))}</b><span>Last seen</span></div>
-      <div class="chip"><b>${esc(place)}</b><span>Last location</span></div>
+      <div class="chip"><b>${esc(loc)}</b><span>Last location</span></div>
       <div class="chip"><b>${d.devices}</b><span>${d.devices === 1 ? 'Device' : 'Devices'} · ${esc(last.device)} / ${esc(last.browser)}</span></div>
     </div>
     ${sessions.map(s => {
@@ -826,8 +903,9 @@ function openFromHash() {
 }
 
 initFromUrl();
-if (token) api('/api/sites').then(start).catch(() => { $('login').hidden = false; });
-else $('login').hidden = false;
+const showLogin = () => { $('login').hidden = false; $('pw').focus(); };
+if (token) api('/api/sites').then(start).catch(showLogin);
+else showLogin();
 </script>
 </body>
 </html>
