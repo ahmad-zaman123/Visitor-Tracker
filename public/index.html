@@ -20,6 +20,7 @@
   select, input, button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
   button { cursor: pointer; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
   main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
   .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: hidden; }
@@ -61,6 +62,14 @@
   .tl .t { color: var(--muted); font-size: 12px; margin-right: 6px; }
   .tl .m { color: var(--muted); font-size: 12px; display: block; }
   body.modal-open { overflow: hidden; }
+  .linkform { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  .linkform label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  .linkform input { width: 100%; }
+  .linkout { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; }
+  .linkout code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font: 13px ui-monospace, monospace; }
+  .linkout code.dim { color: var(--muted); }
+  .hint { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; }
+  @media (max-width: 520px) { .linkform { grid-template-columns: 1fr; } }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -96,6 +105,16 @@
       </div>
 
       <div class="card" style="margin-bottom:16px"><h2>Views per day</h2><div id="chart" class="chart"></div></div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h2>Create a visitor link</h2>
+        <div class="linkform">
+          <label>Who is it for?<input id="lkName" placeholder="Sara Acme" maxlength="80" autocomplete="off"></label>
+          <label>Page<input id="lkPath" placeholder="/" autocomplete="off"></label>
+          <div class="linkout"><code id="lkOut" class="dim">Type a name to get a link</code><button id="lkCopy" class="primary" disabled>Copy</button></div>
+          <p class="hint">Send this link instead of the plain one. When they open it, their visits show up under their name, and later visits from the same browser stay named.</p>
+        </div>
+      </div>
 
       <div class="card" style="margin-bottom:16px"><h2>Named visitors</h2><div class="scroll" id="named"></div></div>
 
@@ -167,7 +186,7 @@ $('addBtn').onclick = async () => {
   try { const s = await api('/api/sites', { method: 'POST', body: JSON.stringify({ name, domain }) }); await loadSites(s.id); }
   catch (e) { alert(e.message); }
 };
-$('site').onchange = load;
+$('site').onchange = () => { updateLink(); load(); };
 $('days').onchange = load;
 
 const bars = (rows, fmt = x => x) => {
@@ -186,6 +205,7 @@ async function load() {
   if (!id) { $('dash').hidden = true; $('setup').hidden = false;
     $('setup').innerHTML = '<h2>Get started</h2><p>Add your first site with <b>+ Add site</b>, then paste the snippet it gives you into that site\'s HTML.</p>'; return; }
   $('setup').hidden = true; $('dash').hidden = false;
+  updateLink();
   const d = await api(`/api/stats?site=${id}&days=${$('days').value}`);
 
   $('sViews').textContent = d.totals.views;
@@ -231,6 +251,37 @@ const fmtTime = t => new Date(t).toLocaleTimeString(undefined, { hour: '2-digit'
 const fmtFull = t => `${fmtDate(t)}, ${fmtTime(t)}`;
 const dur = ms => { const m = Math.round(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
 let lastFocus = null;
+
+// Spaces become hyphens so the link stays readable; t.js turns them back into spaces.
+function visitorLink() {
+  const site = sites.find(x => x.id === $('site').value);
+  const name = $('lkName').value.trim().replace(/\s+/g, '-');
+  if (!site || !name) return '';
+  let path = $('lkPath').value.trim() || '/';
+  if (!path.startsWith('/')) path = '/' + path;
+  return `https://${site.domain}${path}${path.includes('?') ? '&' : '?'}ref=${encodeURIComponent(name)}`;
+}
+
+function updateLink() {
+  const link = visitorLink();
+  $('lkOut').textContent = link || 'Type a name to get a link';
+  $('lkOut').classList.toggle('dim', !link);
+  $('lkCopy').disabled = !link;
+}
+
+$('lkName').oninput = updateLink;
+$('lkPath').oninput = updateLink;
+$('lkCopy').onclick = async () => {
+  const link = visitorLink();
+  if (!link) return;
+  try { await navigator.clipboard.writeText(link); }
+  catch {
+    const r = document.createRange(); r.selectNodeContents($('lkOut'));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy');
+  }
+  $('lkCopy').textContent = 'Copied';
+  setTimeout(() => { $('lkCopy').textContent = 'Copy'; }, 1500);
+};
 
 // Events arrive newest first. A new session starts after 30 minutes of silence.
 function groupSessions(events) {
