@@ -490,15 +490,16 @@ function initFromUrl() {
 
 async function api(path, opts = {}) {
   const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...opts.headers } });
-  if (r.status === 401) { signOut(); throw new Error('unauthorized'); }
+  if (r.status === 401) { signOut(true); throw new Error('unauthorized'); }
   if (!r.ok && r.status !== 204) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
   return r.status === 204 ? null : r.json();
 }
 
-function signOut() {
+function signOut(expired) {
   token = ''; sessionStorage.removeItem('tk_admin'); clearInterval(timer); lastUpdated = 0; showBanner('');
   $('app').hidden = true; $('login').hidden = false;
   $('pw').value = ''; $('pw').focus();
+  if (expired === true && !$('login').hidden) { $('loginErr').textContent = 'Your session ended. Sign in again.'; $('loginErr').hidden = false; }
 }
 
 $('pwToggle').onclick = () => {
@@ -510,18 +511,25 @@ $('pwToggle').onclick = () => {
 };
 $('login').onsubmit = async e => {
   e.preventDefault();
-  token = $('pw').value;
   $('loginErr').hidden = true;
   $('loginBtn').disabled = true; $('loginBtn').textContent = 'Signing in…';
-  try { sites = await api('/api/sites'); sessionStorage.setItem('tk_admin', token); start(); }
-  catch (err) {
-    $('loginErr').textContent = err.message === 'unauthorized' ? 'Wrong password. Try again.'
-      : err instanceof TypeError ? "Can't reach the server. Check your connection." : `Something went wrong (${err.message}).`;
+  try {
+    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('pw').value }) });
+    if (r.status === 429) { const m = Math.ceil(Number(r.headers.get('Retry-After') || 900) / 60); throw new Error('locked:' + m); }
+    if (r.status === 401) { const j = await r.json().catch(() => ({})); throw new Error('wrong:' + (j.left ?? '')); }
+    if (!r.ok) throw new Error(r.statusText || r.status);
+    token = (await r.json()).token;
+    sites = await api('/api/sites'); sessionStorage.setItem('tk_admin', token); start();
+  } catch (err) {
+    const m = err.message || '';
+    $('loginErr').textContent = m.startsWith('wrong:') ? 'Wrong password.' + (m.slice(6) !== '' && Number(m.slice(6)) <= 2 ? ` ${m.slice(6)} ${m.slice(6) === '1' ? 'try' : 'tries'} left before a short lockout.` : ' Try again.')
+      : m.startsWith('locked:') ? `Too many wrong tries. Try again in ${m.slice(7)} minute${m.slice(7) === '1' ? '' : 's'}.`
+      : err instanceof TypeError ? "Can't reach the server. Check your connection." : `Something went wrong (${m}).`;
     $('loginErr').hidden = false;
     $('pw').select();
   } finally { $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign in'; }
 };
-$('signOut').onclick = signOut;
+$('signOut').onclick = () => signOut();
 
 async function start() {
   $('login').hidden = true; $('app').hidden = false;

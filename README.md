@@ -24,7 +24,7 @@ A daily Vercel Cron job (`vercel.json`, 03:00 UTC) calls `/api/cleanup`, which d
 180 days. Set `RETENTION_DAYS` to change it (minimum 30; keep at least 60 so the 30-day comparison works,
 and 180 for the 90-day comparison). Add a `CRON_SECRET` environment variable in Vercel (any long random
 string): Vercel sends it with each cron call, and the endpoint refuses requests without it. You can also run
-a cleanup by hand with `curl -H "Authorization: Bearer $ADMIN_PASSWORD" https://<your-app>/api/cleanup`.
+a cleanup by hand while signed in, or with `curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cleanup`.
 
 ## Using it
 
@@ -36,3 +36,9 @@ a cleanup by hand with `curl -H "Authorization: Bearer $ADMIN_PASSWORD" https://
 ## Local dev
 
 `npm i && npx vercel dev` (needs `vercel link` and `vercel env pull` first).
+
+## Sign-in
+
+The dashboard password is checked once by `/api/login`, which hands back a signed session that lasts 12 hours.
+The password itself is never stored in the browser. After 5 wrong guesses from one address (or 30 from anywhere)
+within 15 minutes, sign-in is paused for a while. Changing `ADMIN_PASSWORD` signs everyone out.

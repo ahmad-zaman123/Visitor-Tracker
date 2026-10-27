@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 export const sql = neon(process.env.DATABASE_URL);
 
@@ -17,6 +17,8 @@ export function ensureSchema() {
       vid text not null, name text, event text not null default 'pageview',
       path text, referrer text, country text, city text, device text, browser text, ip_hash text)`;
     await sql`create index if not exists events_site_ts on events (site_id, ts desc)`;
+    await sql`create table if not exists login_attempts (ip_hash text not null, ts timestamptz not null default now())`;
+    await sql`create index if not exists login_attempts_ts on login_attempts (ts)`;
     await sql`create index if not exists events_site_name on events (site_id, name) where name is not null`;
   })();
   return ready;
@@ -29,8 +31,30 @@ export function hasBearer(req, want) {
   return timingSafeEqual(Buffer.from(given), Buffer.from(want));
 }
 
+// Sessions are a signed expiry time, not the password. Changing ADMIN_PASSWORD signs everyone out.
+export const SESSION_HOURS = 12;
+const sessionKey = () => createHash('sha256').update(`${process.env.ADMIN_PASSWORD || ''}|${process.env.HASH_SALT || ''}|session`).digest();
+const sign = exp => createHmac('sha256', sessionKey()).update(String(exp)).digest('base64url');
+
+export function makeSession() {
+  const exp = Date.now() + SESSION_HOURS * 36e5;
+  return { token: `${exp}.${sign(exp)}`, expires: exp };
+}
+
 export function isAdmin(req) {
-  return hasBearer(req, process.env.ADMIN_PASSWORD || '');
+  if (!process.env.ADMIN_PASSWORD) return false;
+  const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const [exp, sig] = given.split('.');
+  if (!exp || !sig || !/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
+  const want = sign(exp);
+  return sig.length === want.length && timingSafeEqual(Buffer.from(sig), Buffer.from(want));
+}
+
+export function passwordOk(given) {
+  const want = process.env.ADMIN_PASSWORD || '';
+  const a = createHash('sha256').update(String(given ?? '')).digest();
+  const b = createHash('sha256').update(want).digest();
+  return Boolean(want) && timingSafeEqual(a, b);
 }
 
 export function hashIp(ip) {
