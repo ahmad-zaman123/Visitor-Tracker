@@ -61,6 +61,10 @@
   .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin: -4px 0 10px; text-transform: none; letter-spacing: 0; }
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
   .chartwrap { position: relative; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .skip { position: absolute; left: 8px; top: -48px; z-index: 50; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+  .skip:focus { top: 8px; }
   .col { flex: 1; min-width: 0; height: 100%; display: flex; align-items: flex-end; cursor: default; }
   .col:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
   .col .b { position: relative; width: 100%; background: color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 3px 3px 0 0; min-height: 2px; }
@@ -207,6 +211,7 @@
 </form>
 
 <div id="app" hidden>
+  <a class="skip" href="#main">Skip to content</a>
   <header>
     <h1>Visitor Tracker</h1>
     <select id="site" aria-label="Site"></select>
@@ -221,7 +226,7 @@
 
   <div class="body">
   <aside class="sidebar" aria-label="Sites"><div class="sidein"><p class="sidehead">Sites</p><div id="sideList"></div></div></aside>
-  <main>
+  <main id="main" tabindex="-1">
     <div class="statusbar"><button id="stBtn" type="button" hidden>Settings</button><span id="updated" aria-live="polite"></span><button id="refreshBtn" type="button">↻ Refresh</button></div>
     <div id="banner" class="banner" role="alert" hidden><span id="bannerMsg"></span><button id="retryBtn" type="button">Retry</button></div>
     <section id="setup" class="card" hidden></section>
@@ -273,8 +278,9 @@
       <div class="card" style="margin-bottom:16px">
         <h2 id="chartTitle">Traffic</h2>
         <div class="legend"><span><i style="background:color-mix(in srgb, var(--accent) 35%, transparent)"></i>Page views</span><span><i style="background:var(--accent)"></i>Unique visitors</span></div>
-        <div class="chartwrap"><div id="chart" class="chart"></div><div id="tip" hidden></div></div>
-        <div class="xaxis" id="xaxis"></div>
+        <div class="chartwrap"><div id="chart" class="chart" role="img" aria-label="Traffic chart"></div><div id="tip" hidden></div></div>
+        <div class="xaxis" id="xaxis" aria-hidden="true"></div>
+        <table class="sr-only" id="chartTable"><caption>Traffic data</caption><thead><tr><th>Period</th><th>Page views</th><th>Unique visitors</th></tr></thead><tbody></tbody></table>
       </div>
 
       <div class="card" style="margin-bottom:16px">
@@ -460,7 +466,7 @@ function initFromUrl() {
   try { saved = JSON.parse(localStorage.getItem('tk_view') || '{}'); } catch {}
   const range = Number(u.get('range') || (u.has('site') ? 30 : saved.days));
   if ([1, 7, 30, 90].includes(range)) days = range;
-  document.querySelectorAll('#range button').forEach(b => b.classList.toggle('on', Number(b.dataset.days) === days));
+  document.querySelectorAll('#range button').forEach(b => { const on = Number(b.dataset.days) === days; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
   wantSite = u.get('site') || (u.has('range') ? null : saved.site) || null;
   settingsOpen = u.get('view') === 'settings';
   nm.q = u.get('q') || '';
@@ -620,7 +626,7 @@ $('range').onclick = e => {
   const b = e.target.closest('button[data-days]');
   if (!b) return;
   days = Number(b.dataset.days);
-  document.querySelectorAll('#range button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('#range button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
   syncUrl();
   load();
 };
@@ -971,11 +977,14 @@ function fillBuckets(daily, nDays) {
 function renderChart(d) {
   const { hourly, rows } = fillBuckets(d.daily, d.days);
   const n = rows.length;
-  if (!d.totals.views) { $('chart').innerHTML = '<div class="empty">No visits in this range. Try a longer one.</div>'; $('xaxis').innerHTML = ''; return; }
+  if (!d.totals.views) { $('chart').innerHTML = '<div class="empty">No visits in this range. Try a longer one.</div>'; $('chart').setAttribute('aria-label', 'No visits in this range'); $('chartTable').tBodies[0].innerHTML = ''; $('xaxis').innerHTML = ''; return; }
   const max = Math.max(1, ...rows.map(r => r.views));
   $('chart').innerHTML = rows.map((r, i) =>
     `<div class="col" data-i="${i}"><div class="b" style="height:${(r.views / max) * 100}%"><div class="u" style="height:${r.views ? (r.visitors / r.views) * 100 : 0}%"></div></div></div>`).join('');
   $('xaxis').innerHTML = [0, Math.floor(n / 2), n - 1].map(i => `<span>${esc(bucketLabel(rows[i].t, hourly))}</span>`).join('');
+  const peak = rows.reduce((a, r) => (r.views > a.views ? r : a), rows[0]);
+  $('chart').setAttribute('aria-label', `Traffic chart: ${d.totals.views} page views and ${d.totals.visitors} unique visitors. Busiest ${hourly ? 'hour' : 'day'}: ${bucketLabel(peak.t, hourly, true)} with ${peak.views} views.`);
+  $('chartTable').tBodies[0].innerHTML = rows.map(r => `<tr><td>${esc(bucketLabel(r.t, hourly, true))}</td><td>${r.views}</td><td>${r.visitors}</td></tr>`).join('');
   chartRows = rows; chartHourly = hourly;
 }
 
@@ -1085,6 +1094,17 @@ document.addEventListener('click', e => {
 $('vclose').onclick = closeVisitor;
 $('overlay').onclick = closeVisitor;
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('vpanel').hidden) closeVisitor(); });
+
+// Keyboard shortcuts: r refresh, / search names, 1-4 range. Ignored while typing or when a dialog is open.
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
+  if (document.querySelector('dialog[open]') || !$('vpanel').hidden) return;
+  if (e.key === 'r') { $('refreshBtn').click(); }
+  else if (e.key === '/' && $('nmSearch') && $('nmSearch').offsetParent) { e.preventDefault(); $('nmSearch').focus(); }
+  else if ('1234'.includes(e.key) && e.key) { const b = document.querySelectorAll('#range button')[Number(e.key) - 1]; if (b) b.click(); }
+});
 
 // Deep link: #v=Name opens that visitor once the dashboard has loaded.
 // #s=<site>&v=<name> (or the older #v=<name>, which uses the selected site).
