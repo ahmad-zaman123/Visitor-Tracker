@@ -169,6 +169,7 @@
   .stnav { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 0; }
   .stnav button { border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
   .stnav button:hover { color: var(--text); border-color: var(--accent); }
+  #ovAccount { display: grid; gap: 16px; }
   .sthead { margin: 8px 0 -6px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
   .sthead small, .card h2 small { font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 6px; }
   .banner.warnb { background: color-mix(in srgb, #f59e0b 14%, var(--card)); border-color: color-mix(in srgb, #f59e0b 45%, var(--line)); }
@@ -375,11 +376,20 @@
       </div>
       <div class="sites-grid" id="siteGrid"></div>
       <div class="card" style="margin-top:16px"><h2>Recently named visitors</h2><div class="scroll" id="ovRecent"></div></div>
+      <div id="ovAccount" style="margin-top:16px">
+      <h3 class="sthead" id="stAccount">Account <small>applies to all sites</small></h3>
+        <div class="card">
+          <h2>Backup</h2>
+          <p style="margin:0 0 10px">Download a copy of every site and every event as one JSON file, so your data also lives outside the database.</p>
+          <div class="exports"><button type="button" data-export="backup">Download full backup (JSON)</button></div>
+        </div>
+        <div class="card" id="bioCard" hidden><h2>Fingerprint / Face ID</h2><div id="bioBody"></div></div>
+      </div>
     </div>
     <div id="settings" hidden>
       <h2 class="sttitle" id="stTitle"></h2>
       <nav class="stnav" aria-label="Jump to a section">
-        <button type="button" data-jump="stDetails">Details</button><button type="button" data-jump="stInstallCard">Install</button><button type="button" data-jump="stDataCard">Data</button><button type="button" data-jump="stAccount">Account</button><button type="button" data-jump="stDanger">Delete</button>
+        <button type="button" data-jump="stDetails">Details</button><button type="button" data-jump="stInstallCard">Install</button><button type="button" data-jump="stDataCard">Data</button><button type="button" data-jump="stDanger">Delete</button>
       </nav>
       <p id="stTop" role="status" hidden></p>
       <div id="stCron" class="banner warnb" hidden><span>⚠ Automatic cleanup is switched off, so old visits are never deleted. Add a <code>CRON_SECRET</code> environment variable in Vercel and redeploy to turn it on.</span></div>
@@ -400,13 +410,6 @@
         <div class="snipwrap"><div class="snippet" id="stSnippet" tabindex="0"></div><button type="button" id="stCopy" data-act="copy-snippet">Copy snippet</button></div>
       </div>
       <div class="card" id="stDataCard"><h2>Data</h2><div id="stData"></div></div>
-      <h3 class="sthead" id="stAccount">Account <small>applies to all sites</small></h3>
-      <div class="card">
-        <h2>Backup</h2>
-        <p style="margin:0 0 10px">Download a copy of every site and every event as one JSON file, so your data also lives outside the database.</p>
-        <div class="exports"><button type="button" data-export="backup">Download full backup (JSON)</button></div>
-      </div>
-      <div class="card" id="bioCard" hidden><h2>Fingerprint / Face ID</h2><div id="bioBody"></div></div>
       <div class="card dz" id="stDanger">
         <h2>Danger zone <small>this site only</small></h2>
         <div class="dzrow"><p><b>Clear visits</b><br><span>Deletes every recorded visit but keeps the site and its install snippet. Handy after testing.</span></p><button type="button" id="stClear" class="danger-outline">Clear visits…</button></div>
@@ -984,7 +987,6 @@ async function loadSettings(id, seq) {
   const site = sites.find(x => x.id === id);
   if (!site) return;
   lastSettings = d;
-  renderBioCard();
   $('stTitle').textContent = `Settings · ${site.name}`;
   if (!stDirty) { $('stName').value = site.name; $('stDomain').value = site.domain; $('stSave').disabled = true; }
   $('stId').textContent = site.id;
@@ -1133,6 +1135,7 @@ async function loadOverview(seq) {
   $('dONamed').innerHTML = delta(sum('named'), sum('named', 'prev'), vs);
 
   ovData = d; ovVs = vs;
+  renderBioCard();
   const hi = [];
   const dl = d.sites.filter(x => x.downloads).sort((p, q) => q.downloads - p.downloads)[0];
   if (dl) hi.push(`Most downloaded: <b>${esc(dl.name)}</b> (${dl.downloads})`);
