@@ -42,6 +42,9 @@
   .row { position: relative; display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; margin: 2px 0; border-radius: 6px; }
   .row i { position: absolute; inset: 0 auto 0 0; background: var(--bar); border-radius: 6px; z-index: 0; }
   .row span { position: relative; z-index: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row span.n { flex: none; }
+  .row small { display: block; font-size: 11px; color: var(--muted); }
+  .grid { align-items: start; }
   .chart { display: flex; align-items: flex-end; gap: 2px; height: 150px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -89,6 +92,7 @@
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
   .chartwrap { position: relative; }
   .ymax { position: absolute; top: 0; left: 0; right: 0; border-top: 1px dashed var(--line); font-size: 11px; color: var(--muted); line-height: 1; pointer-events: none; }
+  .ymid { top: 50%; opacity: .7; }
   .ymax b { font-weight: 400; background: var(--card); padding-right: 4px; position: relative; top: -6px; }
   .col.on { background: color-mix(in srgb, var(--accent) 12%, transparent); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -109,6 +113,11 @@
   .sortbtn { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
   .sortbtn:hover { color: var(--text); text-decoration: underline; }
   .sortbtn:not(.on)::after { content: ' ↕'; opacity: .4; }
+  .rt .u { display: none; }
+  /* Phones: the title and site picker scroll away, the range buttons stay pinned. */
+  @media (max-width: 640px) { header { position: sticky; top: var(--hdr-top, 0px); z-index: 20; } body.in-settings header { position: static; } }
+  .showmore { display: block; margin: 10px auto 0; font-size: 13px; }
+  .tabs { display: none; min-width: 0; max-width: 100%; contain: inline-size; }
   @media (max-width: 640px) {
     header { padding: 12px; gap: 8px; }
     header h1 { margin-right: auto; font-size: 16px; }
@@ -128,6 +137,25 @@
     .rt td.pri { order: -1; grid-column: 1 / -1; font-weight: 600; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
     .rt td[data-label="Location"], .rt td[data-label="Page"] { grid-column: 1 / -1; }
     .rt td.pri::before { content: none; }
+    /* Compact two-line rows: name and time on top, the details under them. */
+    .rt-named tr, .rt-recent tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 9px 12px; margin-bottom: 8px; }
+    .rt-named td, .rt-recent td { display: block; padding: 0; font-size: 13px; color: var(--muted); }
+    .rt-named td::before, .rt-recent td::before { content: none; }
+    .rt-named td.pri, .rt-recent td.pri { order: 0; flex: 1 1 calc(100% - 90px); min-width: 0; font-size: 15px; color: var(--text); border: 0; margin: 0; padding: 0; }
+    .rt-named td[data-label="Last seen"], .rt-recent td[data-label="When"] { order: 1; flex: none; }
+    .rt-named .u { display: inline; }
+    .rt-named td[data-label="Device"], .rt-recent td.direct { display: none; }
+    .rt-recent td[data-label="Event"] { order: 2; color: var(--text); }
+    .rt-recent td[data-label="Page"] { order: 3; grid-column: auto; }
+    .rt-recent td[data-label="Location"] { order: 4; grid-column: auto; }
+    .rt-recent td[data-label="From"] { order: 5; }
+    .rt-recent td[data-label="From"]::before { content: 'from '; }
+    .rt-named td[data-label="Location"] { grid-column: auto; }
+    .tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 2px; }
+    .tabs button { flex: none; border-radius: 999px; padding: 5px 12px; font-size: 13px; }
+    .tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .grid.tabbed > .card { display: none; }
+    .grid.tabbed > .card.on { display: block; }
   }
   @media (max-width: 400px) {
     header { gap: 6px; padding: 12px 10px; }
@@ -158,6 +186,10 @@
   #stBtn { margin-right: auto; padding: 5px 12px; font-size: 13px; }
   #settings { display: grid; gap: 16px; max-width: 680px; }
   .sttitle { margin: 0; font-size: 20px; }
+  @media (min-width: 1100px) {
+    #settings { max-width: 1000px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    #settings > .sttitle, #settings > .stnav, #settings > #stTop, #settings > #stDataCard, #settings > #stDanger { grid-column: 1 / -1; }
+  }
   .stform { display: grid; gap: 14px; }
   .stform label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
   .stform small { font-size: 12px; }
@@ -183,7 +215,7 @@
   .dzrow span { color: var(--muted); font-size: 13px; }
   .dzrow button { flex: none; }
   #stSave:disabled { background: var(--line); border-color: var(--line); color: var(--muted); opacity: 1; }
-  body.in-settings #range, body.in-settings #updated, body.in-settings #refreshBtn { display: none; }
+  body.in-settings #range, body.in-settings #updated, body.in-settings #refreshBtn, body.in-settings #pauseBtn { display: none; }
   @media (max-width: 520px) { .dzrow { flex-direction: column; align-items: stretch; } .snipwrap { flex-direction: column; } }
   .warn { background: color-mix(in srgb, #f59e0b 14%, var(--card)); border: 1px solid color-mix(in srgb, #f59e0b 45%, var(--line)); border-radius: 8px; padding: 8px 10px; }
   .card.dz { border-color: color-mix(in srgb, #dc2626 40%, var(--line)); }
@@ -191,7 +223,8 @@
   button.danger-outline { color: #dc2626; border-color: #dc2626; }
   .theme-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; }
   #login .theme-toggle { position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
-  .statusbar { display: flex; justify-content: flex-end; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin-bottom: -8px; }
+  .statusbar { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 10px; color: var(--muted); font-size: 12px; margin-bottom: -8px; }
+  @media (max-width: 640px) { .statusbar { margin-bottom: 0; } #updated { order: 5; flex: 1 1 100%; text-align: right; } }
   .statusbar button { padding: 3px 10px; font-size: 12px; }
   .banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; background: color-mix(in srgb, #dc2626 12%, var(--card)); border: 1px solid color-mix(in srgb, #dc2626 40%, var(--line)); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
   main.failed > :not(.statusbar):not(.banner) { display: none; }
@@ -300,8 +333,11 @@
   .linkcard summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; }
   .linkcard summary::-webkit-details-marker { display: none; }
   .linkcard summary h2 { margin: 0; }
-  .linkcard summary::after { content: '+ New link'; font-size: 13px; color: var(--accent); }
-  .linkcard[open] summary::after { content: 'Hide'; }
+  .linkcard summary { gap: 10px; }
+  .linkcard summary:hover h2 { color: var(--text); }
+  .linkcard summary::after { content: '+ New link'; font-size: 13px; color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+  .linkcard summary:hover::after { border-color: var(--accent); }
+  .linkcard[open] summary::after { content: 'Hide ▴'; }
   .linkcard[open] summary { margin-bottom: 12px; }
   .linkform { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
   .linkform label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
@@ -346,7 +382,7 @@
     <select id="site" aria-label="Site"></select>
     <div id="range" class="pills" role="group" aria-label="Range">
       <button data-days="1">Today</button><button data-days="7">7d</button>
-      <button data-days="30" class="on">30d</button><button data-days="90">90d</button>
+      <button data-days="30" class="on">30d</button><button data-days="90">90d</button><button type="button" id="rngCustom" title="Pick any number of days">Custom</button>
     </div>
     <button id="addBtn">+ Add site</button>
     <button id="signOut">Sign out</button>
@@ -356,11 +392,12 @@
   <div class="body">
   <aside class="sidebar" aria-label="Sites"><div class="sidein"><p class="sidehead">Sites</p><div id="sideList"></div></div></aside>
   <main id="main" tabindex="-1">
-    <div class="statusbar"><button id="stBtn" type="button" hidden>⚙ Site settings</button><span id="updated" aria-live="polite"></span><button id="refreshBtn" type="button">↻ Refresh</button></div>
+    <div class="statusbar"><button id="stBtn" type="button" hidden>⚙ Site settings</button><span id="updated" aria-live="polite"></span><button id="pauseBtn" type="button" aria-pressed="false" title="Stop the page refreshing itself every 30 seconds">⏸ Pause</button><button id="refreshBtn" type="button">↻ Refresh</button></div>
     <div id="banner" class="banner" role="alert" hidden><span id="bannerMsg"></span><button id="retryBtn" type="button">Retry</button></div>
     <div id="bioPrompt" class="banner info" hidden><span>Skip typing the password? Turn on fingerprint or Face ID for this device.</span><span class="btns"><button type="button" id="bioYes" class="primary">Turn on</button><button type="button" id="bioNo">Not now</button></span></div>
     <section id="setup" class="card" hidden></section>
     <div id="overview" hidden>
+      <div id="stCron" class="banner warnb" hidden style="margin-bottom:16px"><span>⚠ Automatic cleanup is switched off, so old visits are never deleted. Add a <code>CRON_SECRET</code> environment variable in Vercel and redeploy to turn it on.</span><button type="button" id="stCronX">Dismiss</button></div>
       <div class="card stats" style="margin-bottom:16px">
         <div class="stat"><b id="oViews">0</b><span>Page views</span><small id="dOViews"></small></div>
         <div class="stat"><b id="oVisitors">0</b><span>Unique visitors</span><small id="dOVisitors"></small></div>
@@ -392,7 +429,6 @@
         <button type="button" data-jump="stDetails">Details</button><button type="button" data-jump="stInstallCard">Install</button><button type="button" data-jump="stDataCard">Data</button><button type="button" data-jump="stDanger">Delete</button>
       </nav>
       <p id="stTop" role="status" hidden></p>
-      <div id="stCron" class="banner warnb" hidden><span>⚠ Automatic cleanup is switched off, so old visits are never deleted. Add a <code>CRON_SECRET</code> environment variable in Vercel and redeploy to turn it on.</span></div>
       <div class="card" id="stDetails">
         <h2>Site details</h2>
         <form id="stForm" class="stform" novalidate>
@@ -408,6 +444,7 @@
         <h2>Install</h2>
         <p style="margin:0 0 8px">Paste this before <code>&lt;/body&gt;</code> on your site:</p>
         <div class="snipwrap"><div class="snippet" id="stSnippet" tabindex="0"></div><button type="button" id="stCopy" data-act="copy-snippet">Copy snippet</button></div>
+        <p class="hint" id="stTip" style="margin:8px 0 0"></p>
       </div>
       <div class="card" id="stDataCard"><h2>Data</h2><div id="stData"></div></div>
       <div class="card dz" id="stDanger">
@@ -429,7 +466,7 @@
       <div class="card" style="margin-bottom:16px">
         <h2 id="chartTitle">Traffic</h2>
         <div class="legend"><span><i style="background:var(--views)"></i>Page views</span><span><i style="background:var(--accent)"></i>Unique visitors</span></div>
-        <div class="chartwrap"><div id="chart" class="chart" role="group" tabindex="0" aria-label="Traffic chart"></div><span class="ymax" id="ymax" aria-hidden="true"></span><div id="tip" hidden></div></div>
+        <div class="chartwrap"><div id="chart" class="chart" role="group" tabindex="0" aria-label="Traffic chart"></div><span class="ymax" id="ymax" aria-hidden="true"></span><span class="ymax ymid" id="ymid" aria-hidden="true"></span><div id="tip" hidden></div></div>
         <div class="xaxis" id="xaxis" aria-hidden="true"></div>
         <table class="sr-only" id="chartTable"><caption>Traffic data</caption><thead><tr><th>Period</th><th>Page views</th><th>Unique visitors</th></tr></thead><tbody></tbody></table>
       </div>
@@ -458,12 +495,13 @@
         <div class="scroll" id="named"></div>
       </div>
 
-      <div class="grid" style="margin-bottom:16px">
+      <div class="tabs" id="bkTabs" role="group" aria-label="Breakdown"><button type="button" data-k="paths" class="on">Pages</button><button type="button" data-k="referrers">Referrers</button><button type="button" data-k="countries">Countries</button><button type="button" data-k="devices">Devices</button><button type="button" data-k="customCard">Events</button><button type="button" data-k="campaigns">Campaigns</button></div>
+      <div class="grid tabbed" id="bkGrid" style="margin-bottom:16px">
         <div class="card"><h2>Top pages</h2><div id="paths"></div></div>
         <div class="card"><h2>Referrers</h2><div id="referrers"></div></div>
         <div class="card"><h2>Countries</h2><div id="countries"></div></div>
         <div class="card"><h2>Devices</h2><div id="devices"></div></div>
-        <div class="card"><h2>Custom events</h2><div id="custom"></div></div>
+        <div class="card" id="customCard"><h2>Custom events</h2><div id="custom"></div></div>
         <div class="card"><h2>Campaigns</h2><div id="campaigns"></div></div>
       </div>
 
@@ -479,7 +517,6 @@
         </div>
         <div class="scroll" id="recent"></div>
       </div>
-      <div class="card" style="margin-top:16px"><h2>Install on this site</h2><div id="install"></div></div>
     </div>
   </main>
   </div>
@@ -492,6 +529,13 @@
   <div class="dlgfoot"><button type="button" id="cfCancel">Cancel</button><button type="button" id="cfOk">Confirm</button></div>
 </dialog>
 
+<dialog id="rngDlg" aria-labelledby="rgTitle">
+  <form method="dialog" id="rgForm">
+    <h2 id="rgTitle">Custom range</h2>
+    <label>Show the last <input id="rgDays" type="number" min="1" max="365" inputmode="numeric" required><small>Days, from 1 to 365. Compared with the same number of days before.</small></label>
+    <div class="dlgbtns" style="display:flex;gap:8px;justify-content:flex-end"><button type="button" id="rgCancel">Cancel</button><button class="primary" id="rgOk">Show</button></div>
+  </form>
+</dialog>
 <dialog id="addDlg" aria-labelledby="addTitle">
   <div id="addStep1">
     <h2 id="addTitle">Add a site</h2>
@@ -571,7 +615,7 @@ document.addEventListener('click', async e => {
   const a = e.target.closest('[data-act]');
   if (!a) return;
   if (a.dataset.act === 'make-link') { $('linkCard').open = true; $('lkName').scrollIntoView({ block: 'center', behavior: 'smooth' }); $('lkName').focus({ preventScroll: true }); }
-  else if (a.dataset.act === 'show-install') $('install').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  else if (a.dataset.act === 'show-install') $('firstRun').scrollIntoView({ block: 'center', behavior: 'smooth' });
   else if (a.dataset.act === 'copy-snippet') {
     await copyText(a.dataset.text);
     a.textContent = 'Copied';
@@ -591,7 +635,7 @@ paintThemeBtns();
 let lastUpdated = 0, loadSeq = 0, wantSite = null, settingsOpen = false, stDirty = false, lastSettings = null;
 const since = ms => { const s = Math.floor(ms / 1000); return s < 5 ? 'just now' : s < 60 ? s + 's ago' : s < 3600 ? Math.floor(s / 60) + 'm ago' : Math.floor(s / 3600) + 'h ago'; };
 function paintUpdated() {
-  $('updated').textContent = lastUpdated ? 'Updated ' + since(Date.now() - lastUpdated) : '';
+  $('updated').textContent = lastUpdated ? 'Updated ' + since(Date.now() - lastUpdated) + (paused ? ' · paused' : '') : '';
   $('updated').title = lastUpdated ? new Date(lastUpdated).toLocaleString() : '';
 }
 setInterval(paintUpdated, 10000);
@@ -634,8 +678,8 @@ function initFromUrl() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('tk_view') || '{}'); } catch {}
   const range = Number(u.get('range') || (u.has('site') ? 30 : saved.days));
-  if ([1, 7, 30, 90].includes(range)) days = range;
-  document.querySelectorAll('#range button').forEach(b => { const on = Number(b.dataset.days) === days; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  if (Number.isInteger(range) && range >= 1 && range <= 365) days = range;
+  paintRange();
   wantSite = u.get('site') || (u.has('range') ? null : saved.site) || null;
   settingsOpen = u.get('view') === 'settings';
   nm.q = u.get('q') || '';
@@ -723,11 +767,27 @@ $('signOut').onclick = () => { bioAuto = false; signOut(); };
 async function start() {
   $('login').hidden = true; $('app').hidden = false;
   await loadSites();
+  pinRange(); setTimeout(pinRange, 300);
   clearInterval(timer);
-  timer = setInterval(() => { refreshSites(); load({ quiet: true }); }, 30000);
+  timer = setInterval(() => {
+    // Don't move the page under someone who paused, has another tab in front, or is reading a panel or dialog.
+    if (paused || document.hidden || !$('vpanel').hidden || document.querySelector('dialog[open]')) return;
+    refreshSites(); load({ quiet: true });
+  }, 30000);
 }
 
 const ALL = '__all';
+function pinRange() {
+  const h = document.querySelector('header'), r = $('range');
+  const phone = matchMedia('(max-width: 640px)').matches && r.offsetParent !== null;
+  h.style.setProperty('--hdr-top', phone ? -(h.offsetHeight - r.offsetHeight - 24) + 'px' : '0px');
+}
+addEventListener('resize', pinRange);
+new MutationObserver(pinRange).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+let paused = lsRead('tk_paused') === '1';
+function paintPause() { $('pauseBtn').textContent = paused ? '▶ Resume' : '⏸ Pause'; $('pauseBtn').setAttribute('aria-pressed', paused); $('pauseBtn').title = paused ? 'Resume refreshing every 30 seconds' : 'Stop the page refreshing itself every 30 seconds'; }
+$('pauseBtn').onclick = () => { paused = !paused; paintUpdated(); try { localStorage.setItem('tk_paused', paused ? '1' : '0'); } catch (e) {} paintPause(); if (!paused) load({ quiet: true }); };
+paintPause();
 
 const compact = n => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n));
 function paintSidebar() {
@@ -830,19 +890,47 @@ $('adCopy').onclick = async () => {
   setTimeout(() => { $('adCopy').textContent = 'Copy snippet'; }, 1500);
 };
 let days = 30;
+const PRESETS = [1, 7, 30, 90];
+function paintRange() {
+  document.querySelectorAll('#range button[data-days]').forEach(b => { const on = Number(b.dataset.days) === days; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  const custom = !PRESETS.includes(days);
+  $('rngCustom').textContent = custom ? `${days}d` : 'Custom';
+  $('rngCustom').classList.toggle('on', custom); $('rngCustom').setAttribute('aria-pressed', custom);
+}
 $('range').onclick = e => {
   const b = e.target.closest('button[data-days]');
   if (!b) return;
   days = Number(b.dataset.days);
-  document.querySelectorAll('#range button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
-  syncUrl();
-  load();
+  paintRange(); syncUrl(); load();
 };
+$('rngCustom').onclick = () => { $('rgDays').value = PRESETS.includes(days) ? '' : days; $('rngDlg').showModal(); $('rgDays').focus(); };
+$('rgCancel').onclick = () => $('rngDlg').close();
+$('rgForm').onsubmit = e => {
+  e.preventDefault();
+  const n = Math.round(Number($('rgDays').value));
+  if (!(n >= 1 && n <= 365)) { $('rgDays').setCustomValidity('Enter a number from 1 to 365'); $('rgDays').reportValidity(); return; }
+  $('rgDays').setCustomValidity('');
+  days = n; $('rngDlg').close(); paintRange(); syncUrl(); load();
+};
+$('rgDays').oninput = () => $('rgDays').setCustomValidity('');
 
+// Friendlier wording for the raw event and page names the snippet records.
+const EV_ICON = { 'clicked-email': '✉', 'clicked-phone': '☎' };
+function evLabel(e) {
+  if (e === 'pageview') return 'Viewed page';
+  if (e === 'identify') return 'Identified';
+  if (e === 'clicked-email') return '✉ Clicked email';
+  if (e === 'clicked-phone') return '☎ Clicked phone';
+  if (e.startsWith('downloaded-')) return '⬇ Downloaded ' + e.slice(11);
+  if (e.startsWith('outbound-')) return '↗ Opened link to ' + e.slice(9);
+  return e;
+}
+// "/#plain" reads better as "/ (plain)".
+const pageLabel = p => { p = p || '/'; const i = p.indexOf('#'); return i < 0 ? p : (p.slice(0, i) || '/') + (p.slice(i + 1) ? ` (${p.slice(i + 1)})` : ''); };
 const bars = (rows, fmt = x => x) => {
   if (!rows.length) return '<div class="empty">Nothing in this range yet.</div>';
   const max = Math.max(...rows.map(r => r.n));
-  return rows.map(r => `<div class="row"><i style="width:${(r.n / max) * 100}%"></i><span>${esc(fmt(r.label))}</span><span>${r.n}</span></div>`).join('');
+  return rows.map(r => `<div class="row"><i style="width:${(r.n / max) * 100}%"></i><span title="${esc(fmt(r.label))}">${esc(fmt(r.label))}${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span><span class="n">${r.n}</span></div>`).join('');
 };
 const ago = t => {
   const s = Math.max(1, (Date.now() - new Date(t)) / 1000);
@@ -922,23 +1010,18 @@ async function loadView(seq) {
   lastData = d;
   renderNamed();
 
-  $('paths').innerHTML = bars(d.paths);
+  $('paths').innerHTML = bars(d.paths, pageLabel);
   $('referrers').innerHTML = bars(d.referrers);
   $('countries').innerHTML = bars(d.countries, countryLabel);
   $('devices').innerHTML = bars(d.devices);
-  $('custom').innerHTML = bars(d.custom);
+  $('custom').innerHTML = bars(d.custom, evLabel);
+  $('customCard').hidden = !d.custom.length;
   $('campaigns').innerHTML = d.campaigns.length
-    ? bars(d.campaigns.map(c => ({ ...c, label: c.label + (c.acted ? ` (${c.acted} downloaded or contacted)` : '') })))
+    ? bars(d.campaigns.map(c => ({ ...c, sub: c.acted ? `${c.acted} downloaded or contacted` : '' })))
     : '<div class="empty">No tagged visits yet. Make a link below with “Shared on” filled in, or add <code>?utm_source=linkedin</code> to any link.</div>';
 
   fillRecentFilters();
   renderRecent();
-
-  const s = sites.find(x => x.id === id);
-  $('install').innerHTML = `
-    <p>Paste before <code>&lt;/body&gt;</code> on <b>${esc(s.domain)}</b>:</p>
-    <div class="snippet">&lt;script defer src="${location.origin}/t.js" data-site="${esc(id)}"&gt;&lt;/script&gt;</div>
-    <p>Name a visitor by sending <code>https://${esc(s.domain)}/?ref=Sara-Acme</code>. Log actions with <code>tracker.track('clicked-resume')</code>.</p>`;
 }
 
 const fmtDate = t => new Date(t).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -991,10 +1074,10 @@ async function loadSettings(id, seq) {
   if (!stDirty) { $('stName').value = site.name; $('stDomain').value = site.domain; $('stSave').disabled = true; }
   $('stId').textContent = site.id;
   $('stSnippet').textContent = snippetFor(id);
+  $('stTip').innerHTML = `Name a visitor by sending <code>https://${esc(site.domain)}/?ref=Sara-Acme</code>. Log actions with <code>tracker.track('clicked-resume')</code>.`;
   $('stCopy').dataset.text = snippetFor(id);
   const st = d.sites.find(x => x.site_id === id);
   const since = st?.oldest ? `, going back to ${new Date(st.oldest).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : '';
-  $('stCron').hidden = d.cronConfigured;
   const total = st?.total ?? 0;
   $('stData').innerHTML = `<p style="margin-top:0"><b>${new Intl.NumberFormat().format(total)}</b> events stored${esc(since)}.</p>
     <p>Events are kept for <b>${d.retentionDays} days</b>${d.cronConfigured ? '. Older ones are deleted automatically every day at 03:00 UTC' : ', but automatic deletion is off right now'}.
@@ -1115,6 +1198,7 @@ function renderCards() {
     </div>`;
   }).join('') || '<div class="empty">No sites yet.</div>';
 }
+$('stCronX').onclick = () => { $('stCron').hidden = true; try { sessionStorage.setItem('tk_cron_x', '1'); } catch (e) {} };
 $('ovSort').value = lsRead('tk_ovsort') || 'views';
 $('ovSort').onchange = () => { try { localStorage.setItem('tk_ovsort', $('ovSort').value); } catch (e) {} renderCards(); };
 $('ovCards').onclick = () => { try { localStorage.setItem('tk_ovview', 'cards'); } catch (e) {} renderCards(); };
@@ -1135,6 +1219,7 @@ async function loadOverview(seq) {
   $('dONamed').innerHTML = delta(sum('named'), sum('named', 'prev'), vs);
 
   ovData = d; ovVs = vs;
+  if (!lsRead('tk_cron_x') && !sessionStorage.getItem('tk_cron_x')) api('/api/settings').then(c => { if (seq === loadSeq) $('stCron').hidden = c.cronConfigured; }).catch(() => {});
   renderBioCard();
   const hi = [];
   const dl = d.sites.filter(x => x.downloads).sort((p, q) => q.downloads - p.downloads)[0];
@@ -1165,6 +1250,8 @@ $('overview').addEventListener('keydown', e => {
 let lastData = null;
 const nm = { q: '', key: 'last_seen', dir: -1 };
 const rc = { who: 'all', event: 'all', country: 'all' };
+const LIMIT = 10, more = { named: false, recent: false };
+const moreBtn = (k, n) => `<button type="button" class="showmore" data-more="${k}">Show all ${n}</button>`;
 const SORTABLE = [['name', 'Name'], ['visits', 'Visits'], ['actions', 'Actions'], ['last_seen', 'Last seen']];
 
 function renderNamed() {
@@ -1178,12 +1265,14 @@ function renderNamed() {
   const rows = all.filter(n => !q || n.name.toLowerCase().includes(q));
   rows.sort((a, b) => nm.dir * (nm.key === 'name' ? a.name.localeCompare(b.name)
     : nm.key === 'last_seen' ? new Date(a.last_seen) - new Date(b.last_seen) : a[nm.key] - b[nm.key]));
+  $('nmSearch').hidden = all.length <= 8 && !nm.q;
   $('nmCount').textContent = rows.length === all.length ? `${all.length} total` : `${rows.length} of ${all.length}`;
   $('nmSort').value = nm.key;
   if (!rows.length) { $('named').innerHTML = `<div class="empty">No names match “${esc(nm.q.trim())}”.</div>`; return; }
   const th = SORTABLE.map(([k, label]) => `<th aria-sort="${nm.key === k ? (nm.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn${nm.key === k ? ' on' : ''}" data-k="${k}"${k === 'actions' ? ' title="Custom events such as clicks, not page views"' : ''}>${label}${nm.key === k ? (nm.dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`);
-  $('named').innerHTML = `<table class="rt"><thead><tr>${th.slice(0, 1).join('')}${th.slice(1).join('')}<th>Location</th><th>Device</th></tr></thead><tbody>${
-    rows.map(n => `<tr><td class="pri"><button class="namebtn" data-name="${esc(n.name)}">${esc(n.name)}</button></td><td data-label="Visits">${n.visits}</td><td data-label="Actions">${n.actions}</td><td data-label="Last seen">${agoEl(n.last_seen)}</td><td data-label="Location">${esc(place(n))}</td><td data-label="Device">${esc(n.device)}</td></tr>`).join('')}</tbody></table>`;
+  const shown = more.named ? rows : rows.slice(0, LIMIT);
+  $('named').innerHTML = `<table class="rt rt-named"><thead><tr>${th.slice(0, 1).join('')}${th.slice(1).join('')}<th>Location</th><th>Device</th></tr></thead><tbody>${
+    shown.map(n => `<tr><td class="pri"><button class="namebtn" data-name="${esc(n.name)}">${esc(n.name)}</button></td><td data-label="Visits">${n.visits}<span class="u"> visit${n.visits === 1 ? '' : 's'}</span></td><td data-label="Actions">${n.actions}<span class="u"> action${n.actions === 1 ? '' : 's'}</span></td><td data-label="Last seen">${agoEl(n.last_seen)}</td><td data-label="Location">${esc(place(n))}</td><td data-label="Device">${esc(n.device)}</td></tr>`).join('')}</tbody></table>${shown.length < rows.length ? moreBtn('named', rows.length) : ''}`;
 }
 
 function setSort(key, dir) {
@@ -1191,9 +1280,23 @@ function setSort(key, dir) {
   nm.key = key;
   renderNamed();
 }
+document.addEventListener('click', e => {
+  const b = e.target.closest('.showmore');
+  if (!b) return;
+  more[b.dataset.more] = true;
+  b.dataset.more === 'named' ? renderNamed() : renderRecent();
+});
 $('named').addEventListener('click', e => { const b = e.target.closest('.sortbtn'); if (b) setSort(b.dataset.k); });
 $('nmSort').onchange = e => setSort(e.target.value, e.target.value === 'name' ? 1 : -1);
 $('nmSearch').oninput = e => { nm.q = e.target.value; syncUrl(); if (lastData) renderNamed(); };
+
+// On a phone the six breakdown cards become tabs; on desktop they all show.
+function showBreakdown(k) {
+  document.querySelectorAll('#bkTabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  document.querySelectorAll('#bkGrid > .card').forEach(c => c.classList.toggle('on', (c.querySelector('[id]')?.id === k) || c.id === k));
+}
+$('bkTabs').onclick = e => { const b = e.target.closest('button[data-k]'); if (b) showBreakdown(b.dataset.k); };
+showBreakdown('paths');
 
 // Keep the chosen option when the list is rebuilt on refresh; fall back to "all" if it vanished.
 function setOptions(sel, key, first, values, label) {
@@ -1205,7 +1308,7 @@ function setOptions(sel, key, first, values, label) {
 function fillRecentFilters() {
   const ev = [...new Set(lastData.recent.map(r => r.event))].sort((a, b) => (a === 'pageview' ? -1 : b === 'pageview' ? 1 : a.localeCompare(b)));
   const co = [...new Set(lastData.recent.map(r => r.country).filter(Boolean))].sort();
-  setOptions($('rcEvent'), 'event', 'All events', ev, v => (v === 'pageview' ? 'Page views' : v));
+  setOptions($('rcEvent'), 'event', 'All events', ev, v => (v === 'pageview' ? 'Page views' : evLabel(v)));
   setOptions($('rcCountry'), 'country', 'All countries', co, countryLabel);
 }
 function renderRecent() {
@@ -1215,8 +1318,9 @@ function renderRecent() {
     && (rc.event === 'all' || r.event === rc.event) && (rc.country === 'all' || r.country === rc.country));
   $('rcCount').textContent = rows.length === all.length ? `${all.length} event${all.length === 1 ? '' : 's'}` : `${rows.length} of ${all.length}`;
   if (!rows.length) { $('recent').innerHTML = '<div class="empty">Nothing matches these filters.</div>'; return; }
-  $('recent').innerHTML = `<table class="rt"><thead><tr><th>When</th><th>Who</th><th>Event</th><th>Page</th><th>Location</th><th>From</th></tr></thead><tbody>${
-    rows.map(r => `<tr><td data-label="When">${agoEl(r.ts)}</td><td class="pri">${r.name ? `<button class="namebtn" data-name="${esc(r.name)}">${esc(r.name)}</button>` : 'Anonymous'}</td><td data-label="Event">${esc(r.event)}</td><td data-label="Page">${esc(r.path || '/')}</td><td data-label="Location">${esc(place(r))}</td><td data-label="From">${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</tbody></table>`;
+  const shown = more.recent ? rows : rows.slice(0, LIMIT);
+  $('recent').innerHTML = `<table class="rt rt-recent"><thead><tr><th>When</th><th>Who</th><th>Event</th><th>Page</th><th>Location</th><th>From</th></tr></thead><tbody>${
+    shown.map(r => `<tr><td data-label="When">${agoEl(r.ts)}</td><td class="pri">${r.name ? `<button class="namebtn" data-name="${esc(r.name)}">${esc(r.name)}</button>` : 'Anonymous'}</td><td data-label="Event">${esc(evLabel(r.event))}</td><td data-label="Page">${esc(pageLabel(r.path))}</td><td data-label="Location">${esc(place(r))}</td><td data-label="From"${r.referrer ? '' : ' class="direct"'}>${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</tbody></table>${shown.length < rows.length ? moreBtn('recent', rows.length) : ''}`;
 }
 $('rcWho').onclick = e => {
   const b = e.target.closest('button[data-v]');
@@ -1231,7 +1335,7 @@ $('rcCountry').onchange = e => { rc.country = e.target.value; syncUrl(); renderR
 
 function resetFilters() {
   nm.q = ''; $('nmSearch').value = '';
-  rc.who = 'all'; rc.event = 'all'; rc.country = 'all';
+  rc.who = 'all'; rc.event = 'all'; rc.country = 'all'; more.named = more.recent = false;
   document.querySelectorAll('#rcWho button').forEach(x => x.classList.toggle('on', x.dataset.v === 'all'));
 }
 
@@ -1278,6 +1382,7 @@ function renderChart(d) {
   $('chart').setAttribute('aria-label', `Traffic chart: ${d.totals.views} page views and ${d.totals.visitors} unique visitors. Busiest ${hourly ? 'hour' : 'day'}: ${bucketLabel(peak.t, hourly, true)} with ${peak.views} views.`);
   $('chartTable').tBodies[0].innerHTML = rows.map(r => `<tr><td>${esc(bucketLabel(r.t, hourly, true))}</td><td>${r.views}</td><td>${r.visitors}</td></tr>`).join('');
   $('ymax').innerHTML = `<b>${max}</b>`;
+  $('ymid').innerHTML = max >= 4 ? `<b>${Math.round(max / 2)}</b>` : '';
   chartRows = rows; chartHourly = hourly;
 }
 
@@ -1379,15 +1484,15 @@ function renderVisitor(d) {
     ${(() => {
       const hits = d.events.filter(e => e.event.startsWith('downloaded-') || e.event === 'clicked-email' || e.event === 'clicked-phone');
       if (!hits.length) return '';
-      const c = {}; hits.forEach(e => { const k = e.event.replace(/^downloaded-/, 'Downloaded '); c[k] = (c[k] || 0) + 1; });
-      return `<p class="vacts"><b>Took action:</b> ${Object.entries(c).map(([k, n]) => esc(k.replace('clicked-email', 'Clicked email').replace('clicked-phone', 'Clicked phone')) + (n > 1 ? ` ×${n}` : '')).join(' · ')}</p>`;
+      const c = {}; hits.forEach(e => { const k = evLabel(e.event); c[k] = (c[k] || 0) + 1; });
+      return `<p class="vacts"><b>Took action:</b> ${Object.entries(c).map(([k, n]) => esc(k) + (n > 1 ? ` ×${n}` : '')).join(' · ')}</p>`;
     })()}
     ${sessions.map(s => {
       const first = s.events[0], end = s.events[s.events.length - 1];
       return `<div class="session"><h3>${esc(fmtDate(first.ts))}, ${esc(fmtTime(first.ts))} · ${s.events.length} event${s.events.length === 1 ? '' : 's'} · ${dur(new Date(end.ts) - new Date(first.ts))}${first.referrer ? ' · from ' + esc(first.referrer) : ''}</h3>
       <ul class="tl">${s.events.map(e => e.event === 'pageview'
-        ? `<li><span class="t">${esc(fmtTime(e.ts))}</span>Viewed <b>${esc(e.path || '/')}</b></li>`
-        : `<li class="act"><span class="t">${esc(fmtTime(e.ts))}</span>${esc(e.event)}${e.path ? `<span class="m">on ${esc(e.path)}</span>` : ''}</li>`).join('')}</ul></div>`;
+        ? `<li><span class="t">${esc(fmtTime(e.ts))}</span>Viewed <b>${esc(pageLabel(e.path))}</b></li>`
+        : `<li class="act"><span class="t">${esc(fmtTime(e.ts))}</span>${esc(evLabel(e.event))}${e.path ? `<span class="m">on ${esc(pageLabel(e.path))}</span>` : ''}</li>`).join('')}</ul></div>`;
     }).join('')}
     ${d.events.length >= 300 ? '<div class="empty">Showing the latest 300 events.</div>' : ''}`;
 }
