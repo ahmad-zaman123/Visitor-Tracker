@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/ahmad-zaman123/visitor-tracker/actions/workflows/test.yml"><img src="https://github.com/ahmad-zaman123/visitor-tracker/actions/workflows/test.yml/badge.svg" alt="tests" /></a>
-  <a href="https://visitor-tracker-app.vercel.app"><img src="https://img.shields.io/badge/live-visitor--tracker--app.vercel.app-000?logo=vercel&logoColor=white&style=flat-square" alt="Live site" /></a>
+  <a href="https://visitor-tracker-app.vercel.app"><img src="https://img.shields.io/badge/live%20demo-visitor--tracker--app.vercel.app-000?logo=vercel&logoColor=white&style=flat-square" alt="Live demo" /></a>
   <img src="https://img.shields.io/badge/Vercel-Functions%20%2B%20Cron-000?logo=vercel&logoColor=white&style=flat-square" alt="Vercel" />
   <img src="https://img.shields.io/badge/Postgres-Neon-00E599?logo=postgresql&logoColor=white&style=flat-square" alt="Neon Postgres" />
   <img src="https://img.shields.io/badge/JavaScript-ESM-F7DF1E?logo=javascript&logoColor=black&style=flat-square" alt="JavaScript" />
@@ -17,8 +17,8 @@
 </p>
 
 <p align="center">
-  <a href="https://visitor-tracker-app.vercel.app"><b>Live → visitor-tracker-app.vercel.app</b></a><br/>
-  <sub>This is my own instance, so it asks for a password. Deploy your own in a few minutes with the steps below.</sub>
+  <a href="https://visitor-tracker-app.vercel.app"><b>Live demo → visitor-tracker-app.vercel.app</b></a><br/>
+  <sub>Click <b>Try the demo</b> on the sign-in page to look around with sample data. No password needed, and it's read-only.</sub>
 </p>
 
 <p align="center">
@@ -105,7 +105,9 @@ tracker.track('clicked-resume');   // log a custom event
 
 ## 🎮 Demo mode
 
-Set `DEMO_MODE=1` and the sign-in page gets a **Try the demo** button. It opens the full dashboard with generated sample data (three made-up sites and a few named visitors), so anyone can click around without a password.
+**[Try it live →](https://visitor-tracker-app.vercel.app)** and click **Try the demo** on the sign-in page.
+
+To offer the same on your own deployment, set `DEMO_MODE=1` and the sign-in page gets a **Try the demo** button. It opens the full dashboard with generated sample data (three made-up sites and a few named visitors), so anyone can click around without a password.
 
 - It is **read-only**: adding, renaming and deleting sites, backups, exports and device management are blocked on the server, not just hidden.
 - It never touches your database. The sample data is generated in memory, so your real visitors and sites are never exposed.
