@@ -545,10 +545,14 @@ async function api(path, opts = {}) {
   return r.status === 204 ? null : r.json();
 }
 
+// On a phone, focusing the field opens the keyboard over the card (and over the fingerprint button), so skip it on touch-first devices.
+const touchFirst = () => Boolean(window.matchMedia) && matchMedia('(pointer: coarse)').matches;
+function focusPw(select) { if (touchFirst()) return; $('pw').focus(); if (select) $('pw').select(); }
+
 function signOut(expired) {
   token = ''; sessionStorage.removeItem('tk_admin'); clearInterval(timer); lastUpdated = 0; showBanner('');
   $('app').hidden = true; $('login').hidden = false;
-  $('pw').value = ''; $('pw').focus();
+  $('pw').value = ''; focusPw();
   if (expired === true) bioAuto = true;
   paintBio();
   clearLogin();
@@ -589,7 +593,7 @@ $('login').onsubmit = async e => {
     loginError(m.startsWith('wrong:') ? 'Wrong password.' + (m.slice(6) !== '' && Number(m.slice(6)) <= 3 ? ` ${m.slice(6)} ${m.slice(6) === '1' ? 'try' : 'tries'} left before a short lockout.` : ' Try again.')
       : m.startsWith('locked:') ? `Too many wrong tries. Try again in ${m.slice(7)} minute${m.slice(7) === '1' ? '' : 's'}.`
       : err instanceof TypeError ? "Can't reach the server. Check your connection." : `Something went wrong (${m}).`, m.startsWith('wrong:'));
-    $('pw').select();
+    focusPw(true);
   } finally { $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign in'; }
 };
 $('signOut').onclick = () => { bioAuto = false; signOut(); };
@@ -1290,7 +1294,7 @@ async function signInWithBio() {
     else if (!(err instanceof TypeError)) m = `Fingerprint sign-in failed (${err.message}). Use your password.`;
     else m = "Can't reach the server. Check your connection.";
     if (m) loginError(m);
-    $('pw').focus();
+    focusPw();
   } finally { $('bioBtn').disabled = false; }
 }
 
@@ -1340,7 +1344,7 @@ document.addEventListener('click', async e => {
     await renderBioCard();
   } catch (err) { btn.disabled = false; if (err.name !== 'NotAllowedError' && err.message !== 'unauthorized') stMsg(err.message || 'Something went wrong.'); }
 });
-const showLogin = () => { $('login').hidden = false; $('pw').focus(); paintBio(); };
+const showLogin = () => { $('login').hidden = false; focusPw(); paintBio(); };
 if (token) api('/api/sites').then(start).catch(showLogin);
 else showLogin();
 </script>
