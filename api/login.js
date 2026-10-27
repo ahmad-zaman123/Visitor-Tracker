@@ -1,6 +1,7 @@
 import { ensureSchema, passwordOk, makeSession, clientKey, signInBlocked, recordSignInFailure } from './_lib.js';
 
-// POST { password } -> { token, expires }. The token is a 12-hour signed session; the password itself is never kept.
+// POST { password, remember? } -> { token, expires }. The token is a signed session (12 hours, or 30 days with remember);
+// the password itself is never kept.
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).end();
@@ -18,5 +19,5 @@ export default async function handler(req, res) {
   if (!passwordOk(body?.password)) {
     return res.status(401).json({ error: 'unauthorized', left: await recordSignInFailure(key) });
   }
-  res.json(makeSession());
+  res.json(makeSession(body?.remember === true ? 24 * 30 : undefined));
 }

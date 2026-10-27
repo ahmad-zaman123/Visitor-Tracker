@@ -42,8 +42,8 @@ export const SESSION_HOURS = 12;
 const sessionKey = () => createHash('sha256').update(`${process.env.ADMIN_PASSWORD || ''}|${process.env.HASH_SALT || ''}|session`).digest();
 const sign = exp => createHmac('sha256', sessionKey()).update(String(exp)).digest('base64url');
 
-export function makeSession() {
-  const exp = Date.now() + SESSION_HOURS * 36e5;
+export function makeSession(hours = SESSION_HOURS) {
+  const exp = Date.now() + hours * 36e5;
   return { token: `${exp}.${sign(exp)}`, expires: exp };
 }
 
