@@ -8,17 +8,20 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#2563eb">
-<link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M5 16s4-7 11-7 11 7 11 7-4 7-11 7S5 16 5 16z' fill='none' stroke='%23fff' stroke-width='2.4'/%3E%3Ccircle cx='16' cy='16' r='3.4' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20512%20512%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22g%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%232563eb%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%237c3aed%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%22512%22%20height=%22512%22%20rx=%22112%22%20fill=%22url%28%23g%29%22/%3E%3Ccircle%20cx=%22256%22%20cy=%22256%22%20r=%22128%22%20fill=%22none%22%20stroke=%22%23fff%22%20stroke-opacity=%22.6%22%20stroke-width=%2244%22/%3E%3Ccircle%20cx=%22256%22%20cy=%22256%22%20r=%2252%22%20fill=%22%23fff%22/%3E%3Ccircle%20cx=%22388%22%20cy=%22136%22%20r=%2262%22%20fill=%22%2334d399%22%20stroke=%22%23fff%22%20stroke-width=%2222%22/%3E%3C/svg%3E">
 <script>(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)})();</script>
 <style>
   :root {
     --bg: #f6f7f9; --card: #fff; --text: #14181f; --muted: #667085; --line: #e4e7ec;
     --accent: #2563eb; --bar: #dbe7ff; --ok: #16a34a; --danger: #dc2626;
+    --shadow-sm: 0 1px 2px rgba(16, 24, 40, .06);
+    --shadow: 0 1px 2px rgba(16, 24, 40, .10), 0 10px 24px -6px rgba(16, 24, 40, .22);
+    --shadow-hover: 0 4px 8px rgba(16, 24, 40, .12), 0 22px 40px -12px rgba(16, 24, 40, .38);
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 72%, transparent); --danger: #f87171; color-scheme: dark; }
+    :root:not([data-theme="light"]) { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 72%, transparent); --danger: #f87171; --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5); --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 22px -8px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .05); --shadow-hover: 0 2px 4px rgba(0, 0, 0, .55), 0 18px 34px -10px rgba(0, 0, 0, .85), inset 0 1px 0 rgba(255, 255, 255, .07); color-scheme: dark; }
   }
-  :root[data-theme="dark"] { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 72%, transparent); --danger: #f87171; color-scheme: dark; }
+  :root[data-theme="dark"] { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 72%, transparent); --danger: #f87171; --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5); --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 22px -8px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .05); --shadow-hover: 0 2px 4px rgba(0, 0, 0, .55), 0 18px 34px -10px rgba(0, 0, 0, .85), inset 0 1px 0 rgba(255, 255, 255, .07); color-scheme: dark; }
   :root[data-theme="light"] { color-scheme: light; }
   :root { --views: color-mix(in srgb, var(--accent) 35%, transparent); }
   ::placeholder { color: var(--muted); opacity: .85; }
@@ -33,7 +36,7 @@
   button:disabled { opacity: .5; cursor: not-allowed; }
   main { width: 100%; max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; align-content: start; }
   .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: hidden; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: hidden; box-shadow: var(--shadow); }
   .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 12px; }
   .stats { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   .stat b { display: block; font-size: 28px; line-height: 1.1; }
@@ -57,7 +60,7 @@
     background: radial-gradient(900px 520px at 12% -10%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 60%),
       radial-gradient(700px 480px at 100% 110%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 55%), var(--bg); }
   @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
-  @keyframes blink { 0% { transform: scaleY(1); } 45% { transform: scaleY(.08); } 100% { transform: scaleY(1); } }
+  @keyframes blink { 0% { transform: scale(1); } 45% { transform: scale(1.3); } 100% { transform: scale(1); } }
   @keyframes spin { to { transform: rotate(360deg); } }
   .logincard { animation: rise .45s ease both; }
   .logo.opening svg { animation: blink .45s ease; }
@@ -75,7 +78,7 @@
     .remember { min-height: 32px; }
   }
   .logincard { width: min(380px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 32px 26px; display: grid; gap: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .06); }
-  .logo { width: 52px; height: 52px; border-radius: 14px; background: var(--accent); color: #fff; display: grid; place-items: center; }
+  .logo { width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #2563eb, #7c3aed); box-shadow: 0 6px 16px -4px rgba(79, 70, 229, .5); color: #fff; display: grid; place-items: center; }
   .logincard h1 { margin: 6px 0 0; font-size: 22px; }
   .logincard .sub { margin: 0; color: var(--muted); }
   .pwfield { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
@@ -175,7 +178,7 @@
     .mobile-only { display: inline-block; }
     .rt thead { display: none; }
     .rt, .rt tbody { display: block; width: 100%; }
-    .rt tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; }
+    .rt tr { box-shadow: var(--shadow-sm); display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; }
     .rt td { display: flex; flex-direction: column; gap: 0; padding: 4px 0; border: 0; white-space: normal; text-align: left; overflow-wrap: anywhere; }
     .rt td::before { content: attr(data-label); color: var(--muted); font-size: 11px; flex: none; }
     .rt td.pri { order: -1; grid-column: 1 / -1; font-weight: 600; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
@@ -281,8 +284,10 @@
   .ovname { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
   .sc-delta .up { color: var(--ok); } .sc-delta .down { color: var(--danger); }
   .sites-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .sitecard { display: flex; flex-direction: column; gap: 4px; text-align: left; width: 100%; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; cursor: pointer; }
-  .sitecard:hover { border-color: var(--accent); }
+  .sitecard { display: flex; flex-direction: column; gap: 4px; text-align: left; width: 100%; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; cursor: pointer; box-shadow: var(--shadow); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+  .sitecard:hover, button.tile:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+  .sitecard:active, button.tile:active { transform: translateY(0); box-shadow: var(--shadow); }
+  @media (prefers-reduced-motion: reduce) { .sitecard, .tile { transition: none; } .sitecard:hover, button.tile:hover { transform: none; } }
   .sc-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
   .sc-head b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sc-live { color: var(--ok); font-size: 12px; white-space: nowrap; }
@@ -318,8 +323,8 @@
   @media (min-width: 900px) { .ovtop.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr); } }
   .tiles { display: grid; gap: 12px; align-content: start; }
   @media (max-width: 640px) { .tiles.two { grid-template-columns: 1fr 1fr; } }
-  .tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-  button.tile { cursor: pointer; } button.tile:hover { border-color: var(--accent); }
+  .tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+  button.tile { cursor: pointer; }
   .tile small { font-size: 12px; color: var(--muted); }
   .tile b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rnrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line); }
@@ -370,7 +375,7 @@
   .vtools { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
   .vacts { font-size: 13px; margin: -8px 0 16px; }
   .chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-  .chip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .chip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; box-shadow: var(--shadow-sm); }
   .chip { min-width: 0; }
   .chip b { display: block; font-size: 17px; overflow-wrap: anywhere; }
   .chip span { color: var(--muted); font-size: 12px; }
@@ -437,7 +442,7 @@
 <form id="login" hidden>
   <button type="button" class="theme-toggle" data-theme-toggle></button>
   <div class="logincard">
-    <div class="logo" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 16s4-7 11-7 11 7 11 7-4 7-11 7S5 16 5 16z"/><circle cx="16" cy="16" r="3.4" fill="currentColor" stroke="none"/></svg></div>
+    <div class="logo" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 32 32" fill="none" stroke="#fff"><circle cx="16" cy="16" r="11" stroke-width="2" stroke-opacity=".35"/><circle cx="16" cy="16" r="6.4" stroke-width="2" stroke-opacity=".7"/><circle cx="16" cy="16" r="2.6" fill="#fff" stroke="none"/><circle cx="24" cy="8.6" r="2.7" fill="#34d399" stroke="#fff" stroke-width="1.2"/></svg></div>
     <h1>Visitor Tracker</h1>
     <p class="sub">Sign in to see who's visiting your sites.</p>
     <p id="loginNote" class="note ok" role="status" hidden></p>
@@ -460,7 +465,7 @@
 <div id="app" hidden>
   <a class="skip" href="#main">Skip to content</a>
   <header>
-    <h1><svg class="hlogo" width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M5 16s4-7 11-7 11 7 11 7-4 7-11 7S5 16 5 16z"/><circle cx="16" cy="16" r="3.4" fill="currentColor" stroke="none"/></svg><span class="ttl">Visitor Tracker</span><span class="live-dot" id="liveDot" hidden title="Someone is on one of your sites right now"></span><span class="hsite" id="hSite"></span></h1>
+    <h1><svg class="hlogo" width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="16" cy="16" r="9.5" stroke-width="2.6" opacity=".55"/><circle cx="16" cy="16" r="3.6" fill="currentColor" stroke="none"/><circle cx="24.2" cy="8" r="3.4" fill="#34d399" stroke="none"/></svg><span class="ttl">Visitor Tracker</span><span class="live-dot" id="liveDot" hidden title="Someone is on one of your sites right now"></span><span class="hsite" id="hSite"></span></h1>
     <select id="site" aria-label="Site"></select>
     <button type="button" id="siteBtn" aria-haspopup="dialog"><span class="live-dot" id="liveDot2" hidden></span><span id="siteBtnTxt">Sites</span><span aria-hidden="true">▾</span></button>
     <div id="range" class="pills" role="group" aria-label="Range">
