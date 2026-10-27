@@ -166,6 +166,24 @@
   .msg-ok { color: var(--ok); margin: 0; font-size: 13px; }
   .msg-err { color: #dc2626; margin: 0; font-size: 13px; }
   .exports { display: flex; flex-wrap: wrap; gap: 10px; }
+  .stnav { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 0; }
+  .stnav button { border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
+  .stnav button:hover { color: var(--text); border-color: var(--accent); }
+  .sthead { margin: 8px 0 -6px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .sthead small, .card h2 small { font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 6px; }
+  .banner.warnb { background: color-mix(in srgb, #f59e0b 14%, var(--card)); border-color: color-mix(in srgb, #f59e0b 45%, var(--line)); }
+  .snipwrap { display: flex; gap: 8px; align-items: flex-start; }
+  .snipwrap .snippet { flex: 1; min-width: 0; margin: 0; white-space: nowrap; overflow-x: auto; word-break: normal; }
+  .snipwrap button { flex: none; white-space: nowrap; }
+  .linkbtn { background: none; border: 0; padding: 0 4px; color: var(--accent); font-size: 12px; }
+  .dzrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .dzrow:first-of-type { border-top: 0; padding-top: 0; }
+  .dzrow p { margin: 0; }
+  .dzrow span { color: var(--muted); font-size: 13px; }
+  .dzrow button { flex: none; }
+  #stSave:disabled { background: var(--line); border-color: var(--line); color: var(--muted); opacity: 1; }
+  body.in-settings #range, body.in-settings #updated, body.in-settings #refreshBtn { display: none; }
+  @media (max-width: 520px) { .dzrow { flex-direction: column; align-items: stretch; } .snipwrap { flex-direction: column; } }
   .warn { background: color-mix(in srgb, #f59e0b 14%, var(--card)); border: 1px solid color-mix(in srgb, #f59e0b 45%, var(--line)); border-radius: 8px; padding: 8px 10px; }
   .card.dz { border-color: color-mix(in srgb, #dc2626 40%, var(--line)); }
   button.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
@@ -324,29 +342,40 @@
     </div>
     <div id="settings" hidden>
       <h2 class="sttitle" id="stTitle"></h2>
-      <div class="card">
+      <nav class="stnav" aria-label="Jump to a section">
+        <button type="button" data-jump="stDetails">Details</button><button type="button" data-jump="stInstallCard">Install</button><button type="button" data-jump="stDataCard">Data</button><button type="button" data-jump="stAccount">Account</button><button type="button" data-jump="stDanger">Delete</button>
+      </nav>
+      <p id="stTop" role="status" hidden></p>
+      <div id="stCron" class="banner warnb" hidden><span>⚠ Automatic cleanup is switched off, so old visits are never deleted. Add a <code>CRON_SECRET</code> environment variable in Vercel and redeploy to turn it on.</span></div>
+      <div class="card" id="stDetails">
         <h2>Site details</h2>
         <form id="stForm" class="stform" novalidate>
           <label>Site name<input id="stName" maxlength="80" autocomplete="off"></label>
           <label>Domain<input id="stDomain" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
             <small>Visits from the old address stop being recorded within a minute of saving a new one.</small></label>
-          <p class="stid">Site id <code id="stId"></code></p>
+          <p class="stid">Site id <code id="stId"></code> <button type="button" class="linkbtn" id="stIdCopy">Copy</button></p>
           <p id="stMsg" role="status" hidden></p>
           <div><button class="primary" id="stSave" disabled>Save changes</button></div>
         </form>
       </div>
-      <div class="card">
+      <div class="card" id="stInstallCard">
         <h2>Install</h2>
         <p style="margin:0 0 8px">Paste this before <code>&lt;/body&gt;</code> on your site:</p>
-        <div class="snippet" id="stSnippet"></div>
-        <button type="button" id="stCopy" data-act="copy-snippet">Copy snippet</button>
+        <div class="snipwrap"><div class="snippet" id="stSnippet" tabindex="0"></div><button type="button" id="stCopy" data-act="copy-snippet">Copy snippet</button></div>
       </div>
-      <div class="card"><h2>Data</h2><div id="stData"></div></div>
+      <div class="card" id="stDataCard"><h2>Data</h2><div id="stData"></div></div>
+      <h3 class="sthead" id="stAccount">Account <small>applies to all sites</small></h3>
+      <div class="card">
+        <h2>Backup</h2>
+        <p style="margin:0 0 10px">Download a copy of every site and every event as one JSON file, so your data also lives outside the database.</p>
+        <div class="exports"><button type="button" data-export="backup">Download full backup (JSON)</button></div>
+      </div>
       <div class="card" id="bioCard" hidden><h2>Fingerprint / Face ID</h2><div id="bioBody"></div></div>
-      <div class="card dz">
-        <h2>Danger zone</h2>
-        <p style="margin:0 0 10px">Deleting a site removes it and every visit recorded for it. This can't be undone.</p>
-        <button type="button" id="stDelete" class="danger-outline">Delete this site…</button>
+      <div class="card dz" id="stDanger">
+        <h2>Danger zone <small>this site only</small></h2>
+        <div class="dzrow"><p><b>Clear visits</b><br><span>Deletes every recorded visit but keeps the site and its install snippet. Handy after testing.</span></p><button type="button" id="stClear" class="danger-outline">Clear visits…</button></div>
+        <div class="dzrow"><p><b>Delete site</b><br><span>Removes the site and every visit recorded for it.</span></p><button type="button" id="stDelete" class="danger-outline">Delete this site…</button></div>
+        <p id="stDzMsg" role="status" hidden></p>
       </div>
     </div>
     <div id="dash" hidden>
@@ -495,8 +524,8 @@ document.addEventListener('click', async e => {
   const x = e.target.closest('[data-export]');
   if (!x) return;
   const label = x.textContent;
-  x.disabled = true; x.textContent = 'Preparing…'; stMsg('');
-  try { await download(x.dataset.export); } catch (err) { if (err.message !== 'unauthorized') stMsg(err.message || 'Could not download.'); }
+  x.disabled = true; x.textContent = 'Preparing…'; stTop('');
+  try { await download(x.dataset.export); } catch (err) { if (err.message !== 'unauthorized') stTop(err.message || 'Could not download.'); }
   finally { x.disabled = false; x.textContent = label; }
 });
 document.addEventListener('click', async e => {
@@ -814,10 +843,12 @@ $('retryBtn').onclick = () => load();
 
 async function loadView(seq) {
   const id = $('site').value;
+  document.body.classList.remove('in-settings');
   if (!id) { $('dash').hidden = true; $('overview').hidden = true; $('settings').hidden = true; $('stBtn').hidden = true; $('setup').hidden = false;
     $('setup').innerHTML = '<h2>Get started</h2><p>Add your first site with <b>+ Add site</b>, then paste the snippet it gives you into that site\'s HTML.</p>'; return; }
   $('setup').hidden = true;
   $('stBtn').hidden = id === ALL;
+  document.body.classList.toggle('in-settings', id !== ALL && settingsOpen);
   $('stBtn').textContent = settingsOpen ? '← Dashboard' : '⚙ Site settings';
   if (id !== ALL && settingsOpen) { $('dash').hidden = true; $('overview').hidden = true; $('settings').hidden = false; return loadSettings(id, seq); }
   $('settings').hidden = true;
@@ -901,6 +932,8 @@ function confirmDialog({ title, message, confirmText = 'Confirm', danger = false
 }
 
 // ---- Site settings
+const stTop = (text, ok) => { $('stTop').hidden = !text; $('stTop').textContent = text || ''; $('stTop').className = ok ? 'msg-ok' : 'msg-err'; };
+const dzMsg = (text, ok) => { $('stDzMsg').hidden = !text; $('stDzMsg').textContent = text || ''; $('stDzMsg').className = ok ? 'msg-ok' : 'msg-err'; };
 const stMsg = (text, ok) => { $('stMsg').hidden = !text; $('stMsg').textContent = text || ''; $('stMsg').className = ok ? 'msg-ok' : 'msg-err'; };
 function stCheckDirty() {
   const site = sites.find(x => x.id === $('site').value);
@@ -923,14 +956,16 @@ async function loadSettings(id, seq) {
   $('stCopy').dataset.text = snippetFor(id);
   const st = d.sites.find(x => x.site_id === id);
   const since = st?.oldest ? `, going back to ${new Date(st.oldest).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : '';
-  $('stData').innerHTML = `<p style="margin-top:0"><b>${new Intl.NumberFormat().format(st?.total ?? 0)}</b> events stored${esc(since)}.</p>
-    <p>Events are kept for <b>${d.retentionDays} days</b>. Older ones are deleted automatically every day at 03:00 UTC.</p>
-    <div class="exports"><button type="button" data-export="csv">Download events (CSV)</button><button type="button" data-export="backup">Full backup, all sites (JSON)</button></div>
-    <p class="hint" style="margin:8px 0 0">The CSV opens in Excel or Google Sheets. The backup keeps every site and event, so you have a copy outside the database.</p>
-    ${d.cronConfigured ? '' : '<p class="warn">⚠ Automatic cleanup is switched off. Add a <code>CRON_SECRET</code> environment variable in Vercel and redeploy to turn it on.</p>'}`;
+  $('stCron').hidden = d.cronConfigured;
+  const total = st?.total ?? 0;
+  $('stData').innerHTML = `<p style="margin-top:0"><b>${new Intl.NumberFormat().format(total)}</b> events stored${esc(since)}.</p>
+    <p>Events are kept for <b>${d.retentionDays} days</b>${d.cronConfigured ? '. Older ones are deleted automatically every day at 03:00 UTC' : ', but automatic deletion is off right now'}.
+      <span class="hint" style="display:block;margin-top:4px">To change this, set <code>RETENTION_DAYS</code> (30 or more) in Vercel and redeploy.</span></p>
+    <div class="exports"><button type="button" data-export="csv"${total ? '' : ' disabled'}>Download this site's events (CSV)</button></div>
+    <p class="hint" style="margin:8px 0 0">Opens in Excel or Google Sheets.</p>`;
 }
 
-$('stBtn').onclick = () => { settingsOpen = !settingsOpen; stDirty = false; stMsg(''); syncUrl(); load(); };
+$('stBtn').onclick = () => { settingsOpen = !settingsOpen; stDirty = false; stMsg(''); stTop(''); dzMsg(''); syncUrl(); load(); };
 
 $('stForm').onsubmit = async e => {
   e.preventDefault();
@@ -946,13 +981,39 @@ $('stForm').onsubmit = async e => {
     renderSiteList(); updateLink();
     $('stName').value = row.name; $('stDomain').value = row.domain; $('stTitle').textContent = `Settings · ${row.name}`;
     stDirty = false;
-    stMsg('Saved.', true);
+    stMsg('✓ Saved. Your changes are live.', true);
   } catch (err) {
     stMsg(err.message || 'Could not save.');
     stCheckDirty();
   } finally { $('stSave').textContent = 'Save changes'; }
 };
 
+document.addEventListener('click', e => {
+  const j = e.target.closest('[data-jump]');
+  if (j) $(j.dataset.jump).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+});
+$('stIdCopy').onclick = async () => {
+  await copyText($('stId').textContent);
+  $('stIdCopy').textContent = 'Copied'; setTimeout(() => { $('stIdCopy').textContent = 'Copy'; }, 1500);
+};
+$('stClear').onclick = async () => {
+  const id = $('site').value;
+  const site = sites.find(x => x.id === id);
+  if (!site) return;
+  const total = lastSettings?.sites.find(x => x.site_id === id)?.total ?? 0;
+  dzMsg('');
+  const ok = await confirmDialog({
+    title: `Clear all visits for ${site.name}?`,
+    message: `This permanently deletes ${total ? 'all ' + new Intl.NumberFormat().format(total) + ' recorded events' : 'every recorded event'} for this site. The site and its install snippet stay. This can't be undone.`,
+    confirmText: 'Clear visits', danger: true, requireText: site.name,
+  });
+  if (!ok) return;
+  try {
+    await api('/api/sites?id=' + encodeURIComponent(id) + '&events=1', { method: 'DELETE' });
+    dzMsg('✓ All visits cleared.', true);
+    refreshSites(); load({ quiet: true });
+  } catch (err) { dzMsg(err.message || 'Could not clear the visits.'); }
+};
 $('stDelete').onclick = async () => {
   const id = $('site').value;
   const site = sites.find(x => x.id === id);
@@ -968,7 +1029,7 @@ $('stDelete').onclick = async () => {
     await api('/api/sites?id=' + encodeURIComponent(id), { method: 'DELETE' });
     settingsOpen = false; stDirty = false;
     await loadSites();
-  } catch (err) { stMsg(err.message || 'Could not delete the site.'); }
+  } catch (err) { dzMsg(err.message || 'Could not delete the site.'); }
 };
 
 async function loadOverview(seq) {
@@ -1396,7 +1457,7 @@ document.addEventListener('click', async e => {
     if (del) { await api('/api/passkey?id=' + encodeURIComponent(del.dataset.bioDel), { method: 'DELETE' }); if (del.dataset.bioDel === lsGet('tk_pk')) lsSet('tk_pk', null); }
     else await enableBio();
     await renderBioCard();
-  } catch (err) { btn.disabled = false; if (err.name !== 'NotAllowedError' && err.message !== 'unauthorized') stMsg(err.message || 'Something went wrong.'); }
+  } catch (err) { btn.disabled = false; if (err.name !== 'NotAllowedError' && err.message !== 'unauthorized') stTop(err.message || 'Something went wrong.'); }
 });
 const showLogin = () => { $('login').hidden = false; focusPw(); paintBio(); };
 if (token) api('/api/sites').then(start).catch(showLogin);

@@ -38,7 +38,9 @@ export default async function handler(req, res) {
   if (req.method === 'DELETE') {
     const id = clip(req.query.id, 32);
     if (!id) return res.status(400).json({ error: 'id required' });
-    await sql`delete from sites where id = ${id}`;
+    // ?events=1 empties the site's visits but keeps the site itself.
+    if (req.query.events === '1') await sql`delete from events where site_id = ${id}`;
+    else await sql`delete from sites where id = ${id}`;
     return res.status(204).end();
   }
 
