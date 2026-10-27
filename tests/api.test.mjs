@@ -74,6 +74,33 @@ test('collect: accepts sendBeacon text bodies and subdomains', async () => {
   assert.equal((await sql`select count(*)::int as n from events where vid = 'v2'`)[0].n, 1);
 });
 
+test('collect: an Origin of "null" or garbage is ignored, not an error', async () => {
+  const before = (await sql`select count(*)::int as n from events`)[0].n;
+  for (const origin of ['null', 'not a url', 'ftp://']) assert.equal((await hit({ site, vid: 'o1' }, { origin })).statusCode, 204, origin);
+  assert.equal((await sql`select count(*)::int as n from events`)[0].n, before);
+});
+
+// The rate-limit tests write to their own site, so they don't change the totals other tests check.
+const scratchSite = async () => (await call(sites, { method: 'POST', headers: auth(token), body: { name: 'Scratch', domain: 'example.com' } })).body.id;
+
+test('collect: one visitor id is capped per minute, and other visitors are unaffected', async () => {
+  const site = await scratchSite();
+  const ip = { 'x-forwarded-for': '192.0.2.200' };
+  let codes = [];
+  for (let i = 0; i < 32; i++) codes.push((await hit({ site, vid: 'flood' }, ip)).statusCode);
+  assert.equal(codes.filter(c => c === 204).length, 30);
+  assert.equal(codes.at(-1), 429);
+  assert.equal((await hit({ site, vid: 'calm' }, { 'x-forwarded-for': '192.0.2.201' })).statusCode, 204);
+});
+
+test('collect: one address is capped per minute across many visitor ids', async () => {
+  const site = await scratchSite();
+  const ip = { 'x-forwarded-for': '192.0.2.250' };
+  await sql`insert into events (site_id, vid, ip_hash) select ${site}, 'v' || g, ${(await import('../backend/_lib.js')).hashIp('192.0.2.250')} from generate_series(1, 120) g`;
+  assert.equal((await hit({ site, vid: 'fresh-one' }, ip)).statusCode, 429);
+  await sql`delete from sites where name = 'Scratch'`;
+});
+
 test('stats and visitor panel reflect what was collected', async () => {
   const s = await call(stats, { headers: auth(token), query: { site, days: '30' } });
   assert.equal(s.statusCode, 200);

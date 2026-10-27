@@ -156,7 +156,7 @@ Add `utm_source`, `utm_medium` or `utm_campaign` to a link. The visit, and the d
 
 ### 🔒 Private by design
 
-No raw IPs are stored. Visitor ids are random and live in the visitor's own browser. Do Not Track is honoured, and the dashboard is `noindex`.
+No raw IPs are stored. Visitor ids are random and live in the visitor's own browser. Do Not Track is honoured, and the dashboard is `noindex`. The full list is in [SECURITY.md](SECURITY.md).
 
 ### 🔑 Sign in with a fingerprint
 
@@ -217,15 +217,16 @@ npm install
 npm test
 ```
 
-27 tests run on Node's built-in runner. The API tests call the real handlers against an **in-memory Postgres** ([PGlite](https://pglite.dev)), swapped in for the Neon driver with a module resolve hook, so no database or network is needed.
+35 tests run on Node's built-in runner. The API tests call the real handlers against an **in-memory Postgres** ([PGlite](https://pglite.dev)), swapped in for the Neon driver with a module resolve hook, so no database or network is needed. The browser tests start the real dashboard on that same setup and drive it in headless Chrome (set `CHROME_PATH` if Chrome isn't in a standard place; they are skipped without it).
 
 | Covers | Examples |
 |---|---|
 | **Sign-in and sessions** | wrong password refused, five wrong guesses lock an address, tampered or expired tokens rejected, a changed password signs everyone out |
-| **Collect** | IP stored only as a hash, bots dropped, unknown sites and foreign origins ignored, `sendBeacon` text bodies and subdomains accepted |
+| **Collect** | IP stored only as a hash, bots dropped, unknown sites, foreign origins and `Origin: null` ignored, per-visitor and per-address rate limits, `sendBeacon` text bodies and subdomains accepted |
 | **Dashboard queries** | totals, named visitors, campaigns, top page and source per site |
 | **Retention** | cleanup removes only events past the window, and deleting a site removes its events |
 | **Demo mode** | off by default, sample data only, writes and exports refused, forged or expired demo tokens rejected |
+| **Browser** | demo walkthrough, password sign-in, adding a site, **passkey registration and sign-in** with a virtual authenticator, and a phone-width overflow check |
 | **Helpers** | user-agent parsing, domain cleaning, retention floor, constant-time comparisons |
 
 CI runs the same suite on every push and pull request.
@@ -237,8 +238,8 @@ CI runs the same suite on every push and pull request.
 | **Backend** | Vercel Functions (Node, ESM), Vercel Cron |
 | **Database** | Postgres on Neon, via `@neondatabase/serverless` |
 | **Auth** | HMAC-signed sessions, WebAuthn passkeys (`@simplewebauthn/server`) |
-| **Frontend** | One dependency-free HTML file: vanilla JS and CSS, SVG charts, a service worker and a web manifest |
-| **Tests** | `node:test` and PGlite |
+| **Frontend** | No framework and no build step: one HTML page, a stylesheet and a script of vanilla JS, SVG charts, a service worker and a web manifest |
+| **Tests** | `node:test`, PGlite and headless Chrome (`puppeteer-core`) |
 | **Deployment** | Vercel + Neon, both on free tiers |
 
 ## 🗂️ Project structure
@@ -260,12 +261,15 @@ visitor-tracker/
 │   ├── _demo.js              sample data for the read-only demo
 │   └── schema.sql            the tables, for reference
 ├── frontend/                 everything the browser loads
-│   ├── index.html            the dashboard
+│   ├── index.html            the dashboard page
+│   ├── styles.css            its styles, light and dark
+│   ├── app.js                its script, no build step
 │   ├── t.js                  the tracker snippet
 │   ├── sw.js                 offline app shell
 │   └── manifest.webmanifest, icons
 ├── api/                      one-line entry points into backend/ (Vercel only runs functions from /api)
-├── tests/                    unit and API tests
+├── tests/                    unit, API and browser tests
+├── SECURITY.md               how the app protects data, and how to report a problem
 └── vercel.json               output directory, headers and the cron schedule
 ```
 

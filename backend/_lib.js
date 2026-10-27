@@ -25,6 +25,8 @@ export function ensureSchema() {
     await sql`create index if not exists events_site_ts on events (site_id, ts desc)`;
     await sql`create table if not exists login_attempts (ip_hash text not null, ts timestamptz not null default now())`;
     await sql`create index if not exists login_attempts_ts on login_attempts (ts)`;
+    await sql`create index if not exists events_ip_ts on events (ip_hash, ts desc)`;
+    await sql`create index if not exists events_vid_ts on events (vid, ts desc)`;
     await sql`create index if not exists events_site_name on events (site_id, name) where name is not null`;
   })();
   return ready;

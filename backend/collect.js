@@ -1,5 +1,9 @@
 import { sql, ensureSchema, hashIp, parseUA, clip } from './_lib.js';
 
+// Generous enough for a shared office network, tight enough that a flood can't fill the free database.
+const PER_IP_PER_MIN = 120;
+const PER_VISITOR_PER_MIN = 30;
+
 const sitesCache = new Map(); // id -> { domain, at }
 
 async function getSite(id) {
@@ -29,9 +33,11 @@ export default async function handler(req, res) {
     if (!domain) return res.status(404).end();
 
     // Ignore traffic from other origins (a copied site id on someone else's page).
+    // "null" (sandboxed frames, file pages) and anything unparseable can't be checked, so they are dropped quietly.
     const origin = req.headers.origin || '';
     if (origin) {
-      const host = new URL(origin).hostname;
+      let host = '';
+      try { host = new URL(origin).hostname; } catch { /* dropped below */ }
       const ok = host === domain || host.endsWith(`.${domain}`) || host === 'localhost';
       if (!ok) return res.status(204).end();
     }
@@ -42,11 +48,21 @@ export default async function handler(req, res) {
     const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
     const city = req.headers['x-vercel-ip-city'];
 
+    // The endpoint is public, so cap how fast one address or one visitor id can write. Counted from the table itself,
+    // which stays correct across serverless instances.
+    const ipKey = hashIp(ip);
+    const [recent] = await sql`select count(*) filter (where ip_hash = ${ipKey})::int as by_ip, count(*) filter (where vid = ${vid})::int as by_vid
+      from events where ts > now() - interval '1 minute' and (ip_hash = ${ipKey} or vid = ${vid})`;
+    if (recent.by_ip >= PER_IP_PER_MIN || recent.by_vid >= PER_VISITOR_PER_MIN) {
+      res.setHeader('Retry-After', '60');
+      return res.status(429).end();
+    }
+
     const utm = b.utm && typeof b.utm === 'object' ? b.utm : {};
     await sql`insert into events (site_id, vid, name, event, path, referrer, country, city, device, browser, ip_hash, utm_source, utm_medium, utm_campaign)
       values (${site}, ${vid}, ${clip(b.name, 80)}, ${clip(b.event, 60) || 'pageview'}, ${clip(b.path, 300)},
         ${clip(b.referrer, 300)}, ${clip(req.headers['x-vercel-ip-country'], 2)},
-        ${city ? decodeURIComponent(city) : null}, ${device}, ${browser}, ${hashIp(ip)},
+        ${city ? decodeURIComponent(city) : null}, ${device}, ${browser}, ${ipKey},
         ${clip(utm.source, 60)}, ${clip(utm.medium, 60)}, ${clip(utm.campaign, 60)})`;
 
     res.status(204).end();

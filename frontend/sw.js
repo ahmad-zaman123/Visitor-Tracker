@@ -1,7 +1,7 @@
-// Keeps the dashboard page and icons available offline. Data (/api) is never cached, and the page itself
-// is fetched fresh whenever there is a connection, so a new deploy shows up on the next open.
-const CACHE = 'tk-shell-v4';
-const SHELL = ['/', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/icon.svg'];
+// Keeps the dashboard page, its stylesheet and script, and the icons available offline. Data (/api) is never cached,
+// and the page is fetched fresh whenever there is a connection, so a new deploy shows up on the next open.
+const CACHE = 'tk-shell-v5';
+const SHELL = ['/', '/styles.css', '/app.js', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -22,5 +22,9 @@ self.addEventListener('fetch', e => {
     }).catch(() => caches.match('/')));
     return;
   }
-  e.respondWith(caches.match(req).then(hit => hit || fetch(req)));
+  // The stylesheet and script are fetched fresh too (so a new deploy never runs against old code) and kept for offline use.
+  e.respondWith(fetch(req).then(res => {
+    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+    return res;
+  }).catch(() => caches.match(req)));
 });

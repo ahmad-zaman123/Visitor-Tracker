@@ -17,3 +17,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
