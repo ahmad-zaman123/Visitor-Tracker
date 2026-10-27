@@ -2,7 +2,9 @@
    <script defer src="https://YOUR-TRACKER.vercel.app/t.js" data-site="SITE_ID"></script>
    Name a visitor with a link:  https://yoursite.com/?ref=Sara-Acme
    or in code:                  tracker.identify('Sara')
-   Custom events:               tracker.track('opened-projects')                      */
+   Custom events:               tracker.track('opened-projects')
+   Clicks are logged on their own: email and phone links, file downloads (pdf, docx, zip...)
+   and links to other sites. Skip a link with data-track="off", or all of it with data-auto="off" on this script. */
 (function () {
   var s = document.currentScript;
   if (!s) return;
@@ -38,6 +40,30 @@
     track: function (e) { send(String(e)); },
     identify: function (n) { name = String(n).trim(); set('tk_name', name); send('identify'); }
   };
+
+  // Automatic click events: mailto:, tel:, file downloads and outbound links.
+  if (s.getAttribute('data-auto') !== 'off') {
+    var FILE = /\.(pdf|docx?|xlsx?|pptx?|csv|zip|rar|7z|txt|rtf)$/i, last = '', lastAt = 0;
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      if (!a || a.getAttribute('data-track') === 'off') return;
+      var ev = '', u;
+      try { u = new URL(a.href, location.href); } catch (err) { return; }
+      if (u.protocol === 'mailto:') ev = 'clicked-email';
+      else if (u.protocol === 'tel:') ev = 'clicked-phone';
+      else if (u.protocol === 'http:' || u.protocol === 'https:') {
+        var file = decodeURIComponent(u.pathname.split('/').pop() || '');
+        if (FILE.test(file)) ev = 'downloaded-' + file;
+        else if (a.hasAttribute('download')) ev = 'downloaded-' + (a.getAttribute('download') || file || 'file');
+        else if (u.hostname !== location.hostname) ev = 'outbound-' + u.hostname.replace(/^www\./, '');
+      }
+      if (!ev) return;
+      var now = Date.now();
+      if (ev === last && now - lastAt < 1000) return; // double clicks
+      last = ev; lastAt = now;
+      send(ev.slice(0, 60));
+    }, true);
+  }
 
   // Treat hash changes as page views (the portfolio uses #plain).
   send();

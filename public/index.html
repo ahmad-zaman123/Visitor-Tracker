@@ -130,6 +130,7 @@
   .stid { margin: 0; font-size: 12px; color: var(--muted); }
   .msg-ok { color: var(--ok); margin: 0; font-size: 13px; }
   .msg-err { color: #dc2626; margin: 0; font-size: 13px; }
+  .exports { display: flex; flex-wrap: wrap; gap: 10px; }
   .warn { background: color-mix(in srgb, #f59e0b 14%, var(--card)); border: 1px solid color-mix(in srgb, #f59e0b 45%, var(--line)); border-radius: 8px; padding: 8px 10px; }
   .card.dz { border-color: color-mix(in srgb, #dc2626 40%, var(--line)); }
   button.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
@@ -409,6 +410,25 @@ async function copyText(text) {
     const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
   }
 }
+async function download(kind) {
+  const q = kind === 'csv' ? `kind=csv&site=${encodeURIComponent($('site').value)}` : 'kind=backup';
+  const r = await fetch('/api/export?' + q, { headers: { Authorization: 'Bearer ' + token } });
+  if (r.status === 401) { signOut(true); throw new Error('unauthorized'); }
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+  const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || `export.${kind === 'csv' ? 'csv' : 'json'}`;
+  const url = URL.createObjectURL(await r.blob());
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+document.addEventListener('click', async e => {
+  const x = e.target.closest('[data-export]');
+  if (!x) return;
+  const label = x.textContent;
+  x.disabled = true; x.textContent = 'Preparing…'; stMsg('');
+  try { await download(x.dataset.export); } catch (err) { if (err.message !== 'unauthorized') stMsg(err.message || 'Could not download.'); }
+  finally { x.disabled = false; x.textContent = label; }
+});
 document.addEventListener('click', async e => {
   const a = e.target.closest('[data-act]');
   if (!a) return;
@@ -800,6 +820,8 @@ async function loadSettings(id, seq) {
   const since = st?.oldest ? `, going back to ${new Date(st.oldest).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : '';
   $('stData').innerHTML = `<p style="margin-top:0"><b>${new Intl.NumberFormat().format(st?.total ?? 0)}</b> events stored${esc(since)}.</p>
     <p>Events are kept for <b>${d.retentionDays} days</b>. Older ones are deleted automatically every day at 03:00 UTC.</p>
+    <div class="exports"><button type="button" data-export="csv">Download events (CSV)</button><button type="button" data-export="backup">Full backup, all sites (JSON)</button></div>
+    <p class="hint" style="margin:8px 0 0">The CSV opens in Excel or Google Sheets. The backup keeps every site and event, so you have a copy outside the database.</p>
     ${d.cronConfigured ? '' : '<p class="warn">⚠ Automatic cleanup is switched off. Add a <code>CRON_SECRET</code> environment variable in Vercel and redeploy to turn it on.</p>'}`;
 }
 

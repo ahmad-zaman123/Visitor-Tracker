@@ -42,3 +42,14 @@ a cleanup by hand while signed in, or with `curl -H "Authorization: Bearer $CRON
 The dashboard password is checked once by `/api/login`, which hands back a signed session that lasts 12 hours.
 The password itself is never stored in the browser. After 5 wrong guesses from one address (or 30 from anywhere)
 within 15 minutes, sign-in is paused for a while. Changing `ADMIN_PASSWORD` signs everyone out.
+
+## Automatic click events
+
+`t.js` logs these on its own, with no extra code: `clicked-email` (mailto links), `clicked-phone` (tel links),
+`downloaded-<file>` (pdf, docx, xlsx, zip and similar, or any link with a `download` attribute) and
+`outbound-<site>` (links to other websites). They show up under Custom events and in each visitor's timeline.
+Skip one link with `data-track="off"`, or turn it all off with `data-auto="off"` on the script tag.
+
+## Exports and backup
+
+Site settings has a CSV download of one site's events and a JSON backup of every site and event.
