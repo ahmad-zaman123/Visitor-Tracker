@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ahmad-zaman123/visitor-tracker/actions/workflows/test.yml"><img src="https://github.com/ahmad-zaman123/visitor-tracker/actions/workflows/test.yml/badge.svg" alt="tests" /></a>
+  <a href="https://github.com/ahmad-zaman123/Visitor-Tracker/actions/workflows/test.yml"><img src="https://github.com/ahmad-zaman123/Visitor-Tracker/actions/workflows/test.yml/badge.svg" alt="tests" /></a>
   <a href="https://visitor-tracker-app.vercel.app"><img src="https://img.shields.io/badge/live%20demo-visitor--tracker--app.vercel.app-000?logo=vercel&logoColor=white&style=flat-square" alt="Live demo" /></a>
   <img src="https://img.shields.io/badge/Vercel-Functions%20%2B%20Cron-000?logo=vercel&logoColor=white&style=flat-square" alt="Vercel" />
   <img src="https://img.shields.io/badge/Postgres-Neon-00E599?logo=postgresql&logoColor=white&style=flat-square" alt="Neon Postgres" />
