@@ -1,5 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { sql, ensureSchema, isAdmin, makeSession, clientKey, signInBlocked, recordSignInFailure, clip } from './_lib.js';
+import { sql, ensureSchema, isAdmin, isDemo, denyWrite, makeSession, clientKey, signInBlocked, recordSignInFailure, clip } from './_lib.js';
 
 const b64 = u8 => Buffer.from(u8).toString('base64url');
 const unb64 = s => new Uint8Array(Buffer.from(s, 'base64url'));
@@ -42,7 +42,8 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET' || req.method === 'DELETE' || action === 'reg-options' || action === 'reg-verify') {
-      if (!isAdmin(req)) return res.status(401).json({ error: 'unauthorized' });
+      if (isDemo(req) && req.method === 'GET') return res.json([]);
+      if (!isAdmin(req)) return denyWrite(req, res);
     }
 
     if (req.method === 'GET') {

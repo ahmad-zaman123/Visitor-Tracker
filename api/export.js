@@ -1,4 +1,4 @@
-import { sql, ensureSchema, isAdmin } from './_lib.js';
+import { sql, ensureSchema, isAdmin, denyWrite } from './_lib.js';
 
 const BATCH = 5000;
 const COLS = ['ts', 'site', 'name', 'event', 'path', 'referrer', 'country', 'city', 'device', 'browser', 'visitor_id', 'utm_source', 'utm_medium', 'utm_campaign'];
@@ -15,7 +15,7 @@ const cell = v => {
 // GET ?kind=backup         -> every site and every event as JSON
 // Rows are read in batches by id and written as they come, so big exports never sit in memory.
 export default async function handler(req, res) {
-  if (!isAdmin(req)) return res.status(401).json({ error: 'unauthorized' });
+  if (!isAdmin(req)) return denyWrite(req, res);
   if (req.method !== 'GET') return res.status(405).end();
   await ensureSchema();
 

@@ -1,12 +1,15 @@
-import { sql, ensureSchema, isAdmin } from './_lib.js';
+import { sql, ensureSchema, whoIs } from './_lib.js';
+import { demoOverview } from './_demo.js';
 
 // One round trip for the whole "All sites" view: every query groups by site.
 export default async function handler(req, res) {
-  if (!isAdmin(req)) return res.status(401).json({ error: 'unauthorized' });
+  const who = whoIs(req);
+  if (!who) return res.status(401).json({ error: 'unauthorized' });
   if (req.method !== 'GET') return res.status(405).end();
-  await ensureSchema();
 
   const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
+  if (who === 'demo') { res.setHeader('Cache-Control', 'no-store'); return res.json(demoOverview(days)); }
+  await ensureSchema();
   const since = new Date(Date.now() - days * 864e5).toISOString();
   const sincePrev = new Date(Date.now() - 2 * days * 864e5).toISOString();
   const unit = days <= 1 ? 'hour' : 'day';

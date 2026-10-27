@@ -411,6 +411,10 @@
   .pwwrap input[aria-invalid="true"] { border-color: var(--danger); }
   .pwwrap input[aria-invalid="true"]:focus-visible { outline-color: var(--danger); }
   .forgot { font-size: 13px; color: var(--muted); }
+  #demoBtn { width: 100%; margin-top: 10px; }
+  .demobar { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 16px; font-size: 13px; background: color-mix(in srgb, var(--accent) 12%, var(--card)); border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); text-align: center; }
+  .demobar button { padding: 3px 10px; font-size: 13px; }
+  body.demo #addBtn, body.demo #sideAdd, body.demo #stBtn, body.demo #ovAccount, body.demo #stCron, body.demo [data-m="add"] { display: none !important; }
   .forgot summary { cursor: pointer; width: fit-content; }
   .forgot p { margin: 8px 0 0; }
   @keyframes shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
@@ -454,6 +458,7 @@
     <p id="capsNote" class="note" hidden>Caps Lock is on.</p>
     <label class="remember"><input type="checkbox" id="remember"><span>Keep me signed in on this device for 30 days</span></label>
     <button class="primary" id="loginBtn"><span class="spin" aria-hidden="true"></span><span id="loginBtnTxt">Sign in</span></button>
+    <button type="button" id="demoBtn" hidden>Try the demo</button>
     <div class="biowrap" id="bioWrap" hidden>
       <button type="button" class="bio" id="bioBtn" aria-label="Unlock with fingerprint or Face ID" title="Unlock with fingerprint or Face ID"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 11a3 3 0 0 0-3 3c0 2.5-.5 4-1.5 5.5M12 7a7 7 0 0 0-7 7c0 1.5-.2 3-.7 4M12 3a11 11 0 0 1 11 11c0 2-.3 3.5-.8 5M15 14c0 3-.7 5-2 7M9 3.5A11 11 0 0 0 1 14"/></svg></button>
       <span aria-hidden="true">Use fingerprint</span>
@@ -464,6 +469,7 @@
 
 <div id="app" hidden>
   <a class="skip" href="#main">Skip to content</a>
+  <div class="demobar" id="demoBar" role="status" hidden><span>You're viewing a <b>demo</b> with sample data. It's read-only.</span><button type="button" id="demoExit">Exit demo</button></div>
   <header>
     <h1><svg class="hlogo" width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="16" cy="16" r="9.5" stroke-width="2.6" opacity=".55"/><circle cx="16" cy="16" r="3.6" fill="currentColor" stroke="none"/><circle cx="24.2" cy="8" r="3.4" fill="#34d399" stroke="none"/></svg><span class="ttl">Visitor Tracker</span><span class="live-dot" id="liveDot" hidden title="Someone is on one of your sites right now"></span><span class="hsite" id="hSite"></span></h1>
     <select id="site" aria-label="Site"></select>
@@ -684,6 +690,9 @@ const lsRead = k => { try { return localStorage.getItem(k); } catch (e) { return
 let token = sessionStorage.getItem('tk_admin') || lsRead('tk_admin_long') || '';
 let sites = [];
 let timer;
+// Demo sessions carry a third token part (`exp.d.sig`). They are never remembered between visits.
+const isDemo = () => token.split('.').length === 3;
+function paintDemo() { document.body.classList.toggle('demo', isDemo()); $('demoBar').hidden = !isDemo(); }
 
 // ---- Theme: follows the system until the button is used, then remembers the choice.
 const SUN = 'M12 4V2m0 20v-2m8-8h2M2 12h2m13.7-5.7l1.4-1.4M4.9 19.1l1.4-1.4m0-11.4L4.9 4.9m14.2 14.2l-1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z';
@@ -861,7 +870,7 @@ const touchFirst = () => Boolean(window.matchMedia) && matchMedia('(pointer: coa
 function focusPw(select) { if (touchFirst()) return; $('pw').focus(); if (select) $('pw').select(); }
 
 function signOut(expired) {
-  cacheClear(); token = ''; sessionStorage.removeItem('tk_admin'); try { localStorage.removeItem('tk_admin_long'); } catch (e) {} clearInterval(timer); lastUpdated = 0; showBanner('');
+  cacheClear(); token = ''; paintDemo(); sessionStorage.removeItem('tk_admin'); try { localStorage.removeItem('tk_admin_long'); } catch (e) {} clearInterval(timer); lastUpdated = 0; showBanner('');
   $('app').hidden = true; $('login').hidden = false;
   $('pw').value = ''; focusPw();
   if (expired === true) bioAuto = true;
@@ -922,9 +931,22 @@ $('login').onsubmit = async e => {
   } finally { setBusy(false); }
 };
 $('signOut').onclick = () => { bioAuto = false; signOut(); };
+$('demoExit').onclick = () => $('signOut').click();
+// Offer the demo only when the server has it switched on.
+fetch('/api/login').then(r => r.ok ? r.json() : null).then(j => { if (j?.demo) $('demoBtn').hidden = false; }).catch(() => {});
+$('demoBtn').onclick = async () => {
+  clearLogin(); $('demoBtn').disabled = true;
+  try {
+    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ demo: true }) });
+    if (!r.ok) throw new Error(r.status);
+    token = (await r.json()).token; sessionStorage.setItem('tk_admin', token);
+    sites = await api('/api/sites'); await opening(); start();
+  } catch (err) { token = ''; loginError("Couldn't open the demo. Try again in a moment."); }
+  finally { $('demoBtn').disabled = false; }
+};
 
 async function start() {
-  $('login').hidden = true; $('app').hidden = false;
+  $('login').hidden = true; $('app').hidden = false; paintDemo();
   await loadSites();
   pinRange(); setTimeout(pinRange, 300);
   clearInterval(timer);

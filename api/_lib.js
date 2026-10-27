@@ -56,6 +56,28 @@ export function isAdmin(req) {
   return sig.length === want.length && timingSafeEqual(Buffer.from(sig), Buffer.from(want));
 }
 
+// Demo sessions are signed separately (`exp.d.sig`) and only count when DEMO_MODE=1. They never match isAdmin().
+export const demoEnabled = () => process.env.DEMO_MODE === '1';
+export const DEMO_HOURS = 2;
+
+export function makeDemoSession() {
+  const exp = Date.now() + DEMO_HOURS * 36e5;
+  return { token: `${exp}.d.${sign(`${exp}d`)}`, expires: exp, demo: true };
+}
+
+export function isDemo(req) {
+  if (!demoEnabled()) return false;
+  const [exp, tag, sig] = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').split('.');
+  if (!exp || tag !== 'd' || !sig || !/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
+  const want = sign(`${exp}d`);
+  return sig.length === want.length && timingSafeEqual(Buffer.from(sig), Buffer.from(want));
+}
+
+// Who is asking: 'admin', 'demo' or null. Write endpoints answer a demo visitor with 403 so the dashboard keeps the session.
+export const whoIs = req => (isAdmin(req) ? 'admin' : isDemo(req) ? 'demo' : null);
+export const denyWrite = (req, res) =>
+  isDemo(req) ? res.status(403).json({ error: 'Read-only demo' }) : res.status(401).json({ error: 'unauthorized' });
+
 export function passwordOk(given) {
   const want = process.env.ADMIN_PASSWORD || '';
   const a = createHash('sha256').update(String(given ?? '')).digest();

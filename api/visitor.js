@@ -1,13 +1,19 @@
-import { sql, ensureSchema, isAdmin, clip } from './_lib.js';
+import { sql, ensureSchema, whoIs, clip } from './_lib.js';
+import { demoVisitor } from './_demo.js';
 
 export default async function handler(req, res) {
-  if (!isAdmin(req)) return res.status(401).json({ error: 'unauthorized' });
+  const who = whoIs(req);
+  if (!who) return res.status(401).json({ error: 'unauthorized' });
   if (req.method !== 'GET') return res.status(405).end();
-  await ensureSchema();
 
   const site = clip(req.query.site, 32);
   const name = clip(req.query.name, 80);
   if (!site || !name) return res.status(400).json({ error: 'site and name required' });
+  if (who === 'demo') {
+    const v = demoVisitor(site, name);
+    return v ? res.json(v) : res.status(404).json({ error: 'not found' });
+  }
+  await ensureSchema();
 
   const [summary] = await sql`
     select count(*) filter (where event = 'pageview')::int as visits,

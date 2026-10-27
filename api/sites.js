@@ -1,8 +1,11 @@
 import { randomBytes } from 'node:crypto';
-import { sql, ensureSchema, isAdmin, clip, cleanDomain, validDomain } from './_lib.js';
+import { sql, ensureSchema, whoIs, denyWrite, clip, cleanDomain, validDomain } from './_lib.js';
+import { demoSites } from './_demo.js';
 
 export default async function handler(req, res) {
-  if (!isAdmin(req)) return res.status(401).json({ error: 'unauthorized' });
+  const who = whoIs(req);
+  if (!who) return res.status(401).json({ error: 'unauthorized' });
+  if (who === 'demo') return req.method === 'GET' ? res.json(demoSites()) : denyWrite(req, res);
   await ensureSchema();
 
   if (req.method === 'GET') {

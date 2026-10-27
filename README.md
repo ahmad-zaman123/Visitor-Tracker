@@ -76,6 +76,7 @@ The tables are created automatically on first use, so there is no migration step
 | `HASH_SALT` | **yes** | Any long random string. Salts the IP hash and signs sessions. |
 | `CRON_SECRET` | recommended | Any long random string. Vercel sends it with the daily cleanup call, and the endpoint refuses requests without it. Without it, old visits are never deleted and the dashboard warns you. |
 | `RETENTION_DAYS` | no | How long to keep events. Default 180, minimum 30. |
+| `DEMO_MODE` | no | Set to `1` to show a **Try the demo** button on the sign-in page. See [Demo mode](#-demo-mode). |
 
 </details>
 
@@ -101,6 +102,14 @@ https://yoursite.com/?utm_source=linkedin&utm_campaign=job-oct   →  credited t
 tracker.identify('Sara');          // name someone from your own code
 tracker.track('clicked-resume');   // log a custom event
 ```
+
+## 🎮 Demo mode
+
+Set `DEMO_MODE=1` and the sign-in page gets a **Try the demo** button. It opens the full dashboard with generated sample data (three made-up sites and a few named visitors), so anyone can click around without a password.
+
+- It is **read-only**: adding, renaming and deleting sites, backups, exports and device management are blocked on the server, not just hidden.
+- It never touches your database. The sample data is generated in memory, so your real visitors and sites are never exposed.
+- Demo sessions last 2 hours and are signed separately from real ones, so they can't be used as an admin session. Switching `DEMO_MODE` off ends them at once.
 
 ## 🧩 How it works
 
@@ -159,6 +168,10 @@ Add it to your home screen and it opens in its own window. It has a bottom-sheet
 
 Follows the system theme, with a manual toggle.
 
+### 🎮 Try before you deploy
+
+Optional read-only demo with sample data, for showing the dashboard to someone without sharing a password.
+
 ### 💾 Your data is yours
 
 CSV export of one site's events, and a one-file JSON backup of everything.
@@ -188,7 +201,7 @@ The tracker endpoint is public. Everything else needs the signed session returne
 | Area | Endpoints |
 |---|---|
 | **Collect** | `POST /api/collect` (public, CORS open, origin-checked) |
-| **Sign in** | `POST /api/login`, `POST /api/passkey?action=auth-options` and `auth-verify` |
+| **Sign in** | `GET`, `POST /api/login` (`GET` says whether the demo is on), `POST /api/passkey?action=auth-options` and `auth-verify` |
 | **Devices** | `GET`, `DELETE /api/passkey`, `POST /api/passkey?action=reg-options` and `reg-verify` |
 | **Sites** | `GET`, `POST`, `PATCH`, `DELETE /api/sites` |
 | **Stats** | `GET /api/overview?days=30`, `GET /api/stats?site=<id>&days=30`, `GET /api/visitor?site=<id>&name=<name>` |
@@ -202,7 +215,7 @@ npm install
 npm test
 ```
 
-20 tests run on Node's built-in runner. The API tests call the real handlers against an **in-memory Postgres** ([PGlite](https://pglite.dev)), swapped in for the Neon driver with a module resolve hook, so no database or network is needed.
+25 tests run on Node's built-in runner. The API tests call the real handlers against an **in-memory Postgres** ([PGlite](https://pglite.dev)), swapped in for the Neon driver with a module resolve hook, so no database or network is needed.
 
 | Covers | Examples |
 |---|---|
@@ -210,6 +223,7 @@ npm test
 | **Collect** | IP stored only as a hash, bots dropped, unknown sites and foreign origins ignored, `sendBeacon` text bodies and subdomains accepted |
 | **Dashboard queries** | totals, named visitors, campaigns, top page and source per site |
 | **Retention** | cleanup removes only events past the window, and deleting a site removes its events |
+| **Demo mode** | off by default, sample data only, writes and exports refused, forged or expired demo tokens rejected |
 | **Helpers** | user-agent parsing, domain cleaning, retention floor, constant-time comparisons |
 
 CI runs the same suite on every push and pull request.
@@ -240,6 +254,7 @@ visitor-tracker/
 │   ├── export.js       CSV and JSON backup
 │   ├── settings.js     retention and cleanup status
 │   ├── cleanup.js      daily retention job
+│   ├── _demo.js        sample data for the read-only demo
 │   └── _lib.js         database, sessions, hashing, user-agent parsing
 ├── public/
 │   ├── index.html      the dashboard
