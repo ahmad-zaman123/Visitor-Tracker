@@ -251,6 +251,8 @@
   .panel-head { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); }
   .panel-head h2 { margin: 0; font-size: 18px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .panel-body { overflow-y: auto; overflow-x: hidden; padding: 16px; flex: 1; min-width: 0; }
+  .vtools { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+  .vacts { font-size: 13px; margin: -8px 0 16px; }
   .chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
   .chip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
   .chip { min-width: 0; }
@@ -1361,6 +1363,7 @@ function renderVisitor(d) {
   const loc = place(last);
   const sessions = groupSessions(d.events);
   $('vbody').innerHTML = `
+    <div class="vtools"><button type="button" id="vLink">Copy their link</button><span id="vLinkMsg" role="status"></span></div>
     <div class="chips">
       <div class="chip"><b>${d.visits}</b><span>Page views</span></div>
       <div class="chip"><b>${d.actions}</b><span>Actions</span></div>
@@ -1368,7 +1371,14 @@ function renderVisitor(d) {
       <div class="chip"><b>${esc(fmtDayOnly(d.last_seen))}</b><span>Last seen · ${esc(fmtTime(d.last_seen))}</span></div>
       <div class="chip"><b>${esc(loc)}</b><span>Last location</span></div>
       <div class="chip"><b>${d.devices}</b><span>${d.devices === 1 ? 'Device' : 'Devices'} · ${esc(last.device)} / ${esc(last.browser)}</span></div>
+      ${d.campaign ? `<div class="chip"><b>${esc(d.campaign)}</b><span>Campaign</span></div>` : ''}
     </div>
+    ${(() => {
+      const hits = d.events.filter(e => e.event.startsWith('downloaded-') || e.event === 'clicked-email' || e.event === 'clicked-phone');
+      if (!hits.length) return '';
+      const c = {}; hits.forEach(e => { const k = e.event.replace(/^downloaded-/, 'Downloaded '); c[k] = (c[k] || 0) + 1; });
+      return `<p class="vacts"><b>Took action:</b> ${Object.entries(c).map(([k, n]) => esc(k.replace('clicked-email', 'Clicked email').replace('clicked-phone', 'Clicked phone')) + (n > 1 ? ` ×${n}` : '')).join(' · ')}</p>`;
+    })()}
     ${sessions.map(s => {
       const first = s.events[0], end = s.events[s.events.length - 1];
       return `<div class="session"><h3>${esc(fmtDate(first.ts))}, ${esc(fmtTime(first.ts))} · ${s.events.length} event${s.events.length === 1 ? '' : 's'} · ${dur(new Date(end.ts) - new Date(first.ts))}${first.referrer ? ' · from ' + esc(first.referrer) : ''}</h3>
@@ -1378,6 +1388,15 @@ function renderVisitor(d) {
     }).join('')}
     ${d.events.length >= 300 ? '<div class="empty">Showing the latest 300 events.</div>' : ''}`;
 }
+
+document.addEventListener('click', async e => {
+  if (!e.target.closest('#vLink')) return;
+  const site = sites.find(x => x.id === $('site').value);
+  if (!site) return;
+  await copyText(`https://${site.domain}/?ref=${encodeURIComponent($('vname').textContent.trim().replace(/\s+/g, '-'))}`);
+  $('vLinkMsg').textContent = 'Copied';
+  setTimeout(() => { $('vLinkMsg').textContent = ''; }, 1500);
+});
 
 async function openVisitor(name) {
   lastFocus = document.activeElement;

@@ -13,7 +13,9 @@ export default async function handler(req, res) {
     select count(*) filter (where event = 'pageview')::int as visits,
       count(*) filter (where event <> 'pageview')::int as actions,
       count(distinct vid)::int as devices,
-      min(ts) as first_seen, max(ts) as last_seen
+      min(ts) as first_seen, max(ts) as last_seen,
+      (array_agg(concat_ws(' · ', utm_source, utm_medium, utm_campaign) order by ts)
+        filter (where utm_source is not null or utm_medium is not null or utm_campaign is not null))[1] as campaign
     from events where site_id = ${site} and name = ${name}`;
   if (!summary.first_seen) return res.status(404).json({ error: 'not found' });
 
