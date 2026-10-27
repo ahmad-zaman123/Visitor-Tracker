@@ -116,20 +116,53 @@
   .sortbtn:hover { color: var(--text); text-decoration: underline; }
   .sortbtn:not(.on)::after { content: ' ↕'; opacity: .4; }
   .rt .u { display: none; }
+  #siteBtn { display: none; }
+  header #menuBtn { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; font-size: 20px; line-height: 1; }
+  header #addBtn, header #signOut, header .theme-toggle { display: none; }
+  header h1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .hlogo { flex: none; color: var(--accent); }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .hsite { font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hsite:not(:empty)::before { content: '· '; }
+  @media (max-width: 959px) { .hsite { display: none; } }
+  @media (max-width: 640px) { #liveDot { display: none; } }
+  .sideadd { width: 100%; margin-top: 10px; font-size: 13px; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; font-size: 14px; align-items: baseline; }
+  .keys dt { white-space: nowrap; } .keys dd { margin: 0; color: var(--muted); }
+  kbd { font: 12px ui-monospace, monospace; background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; }
+  #menu { position: fixed; z-index: 40; right: 12px; min-width: 200px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 6px; box-shadow: 0 12px 32px rgba(0, 0, 0, .25); }
+  #menu button { display: block; width: 100%; text-align: left; border: 0; background: none; min-height: 44px; padding: 10px 12px; border-radius: 8px; }
+  #menu button:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  dialog.sheet { margin: auto 0 0; width: 100%; max-width: none; max-height: 80vh; max-height: 80dvh; border-radius: 16px 16px 0 0; padding: 8px 12px max(12px, env(safe-area-inset-bottom)); overflow-y: auto; animation: sheetup .22s ease; }
+  @keyframes sheetup { from { transform: translateY(30%); opacity: .6; } }
+  @media (prefers-reduced-motion: reduce) { dialog.sheet { animation: none; } }
+  .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 4px auto 10px; }
+  .sheet .sideitem { min-height: 56px; padding: 10px 12px; }
+  .si-live { color: var(--ok); font-size: 11px; }
+  #ptr { position: fixed; top: 0; left: 0; right: 0; z-index: 25; text-align: center; font-size: 12px; color: var(--muted); pointer-events: none; transform: translateY(-100%); opacity: 0; }
+  #ptr span { display: inline-block; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; margin-top: 8px; }
+  #chart { touch-action: pan-y; }
   /* Phones: the title and site picker scroll away, the range buttons stay pinned. */
   @media (max-width: 640px) { header { position: sticky; top: var(--hdr-top, 0px); z-index: 20; } body.in-settings header { position: static; } }
   .showmore { display: block; margin: 10px auto 0; font-size: 13px; }
   .tabs { display: none; min-width: 0; max-width: 100%; contain: inline-size; }
   @media (max-width: 640px) {
-    header { padding: 12px; gap: 8px; }
-    header h1 { margin-right: auto; font-size: 16px; }
-    header #addBtn, header #signOut { padding: 6px 8px; }
-    header #site { flex: 1 1 100%; order: 5; min-width: 0; width: 100%; max-width: 100%; text-overflow: ellipsis; }
+    header { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+    header h1 { margin: 0; font-size: 16px; order: 1; }
+    header #site { display: none; }
+    header #siteBtn { display: flex; order: 2; flex: 1 1 0; min-width: 0; align-items: center; justify-content: space-between; gap: 6px; min-height: 40px; padding: 6px 12px; font-weight: 600; }
+    #siteBtnTxt { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    header #menuBtn { order: 3; width: 40px; height: 40px; }
     header #range { flex: 1 1 100%; order: 6; }
+    /* Touch targets: 40px and up. */
+    .statusbar button, .tabs button, .showmore, .seg button, .stnav button, .sc-copy, #stBtn { min-height: 40px; }
+    .statusbar button { padding: 8px 12px; font-size: 13px; }
+    .pills button { min-height: 40px; }
+    body { overscroll-behavior-y: contain; }
     header #range button { flex: 1; padding: 10px 0; }
     main { padding: 12px; }
     .stat b { font-size: 24px; }
-    .namebtn { padding: 6px 0; min-height: 32px; }
+    .namebtn { padding: 10px 0; min-height: 40px; margin: -6px 0; }
     .mobile-only { display: inline-block; }
     .rt thead { display: none; }
     .rt, .rt tbody { display: block; width: 100%; }
@@ -160,11 +193,10 @@
     .grid.tabbed > .card.on { display: block; }
   }
   @media (max-width: 400px) {
-    header { gap: 6px; padding: 12px 10px; }
-    header h1 { font-size: 15px; white-space: nowrap; }
-    header #addBtn, header #signOut { padding: 6px 7px; font-size: 14px; }
-    header .theme-toggle { width: 34px; height: 34px; }
+    header { gap: 6px; padding: 10px; }
+    header h1 .ttl { display: none; }
   }
+  @media (max-width: 640px) and (pointer: coarse) { #refreshBtn { display: none; } }
   @supports (padding: env(safe-area-inset-top)) {
     header { padding-top: max(14px, env(safe-area-inset-top)); padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
     main { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
@@ -226,7 +258,7 @@
   .theme-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; }
   #login .theme-toggle { position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
   .statusbar { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 10px; color: var(--muted); font-size: 12px; margin-bottom: -8px; }
-  @media (max-width: 640px) { .statusbar { margin-bottom: 0; } #updated { order: 5; flex: 1 1 100%; text-align: right; } }
+  @media (max-width: 640px) { .statusbar { margin-bottom: 0; flex-wrap: nowrap; } #stBtn { margin-right: 0; } #updated { flex: 1 1 auto; min-width: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
   .statusbar button { padding: 3px 10px; font-size: 12px; }
   .banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; background: color-mix(in srgb, #dc2626 12%, var(--card)); border: 1px solid color-mix(in srgb, #dc2626 40%, var(--line)); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
   main.failed > :not(.statusbar):not(.banner) { display: none; }
@@ -380,8 +412,9 @@
 <div id="app" hidden>
   <a class="skip" href="#main">Skip to content</a>
   <header>
-    <h1>Visitor Tracker</h1>
+    <h1><svg class="hlogo" width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M5 16s4-7 11-7 11 7 11 7-4 7-11 7S5 16 5 16z"/><circle cx="16" cy="16" r="3.4" fill="currentColor" stroke="none"/></svg><span class="ttl">Visitor Tracker</span><span class="live-dot" id="liveDot" hidden title="Someone is on one of your sites right now"></span><span class="hsite" id="hSite"></span></h1>
     <select id="site" aria-label="Site"></select>
+    <button type="button" id="siteBtn" aria-haspopup="dialog"><span class="live-dot" id="liveDot2" hidden></span><span id="siteBtnTxt">Sites</span><span aria-hidden="true">▾</span></button>
     <div id="range" class="pills" role="group" aria-label="Range">
       <button data-days="1">Today</button><button data-days="7">7d</button>
       <button data-days="30" class="on">30d</button><button data-days="90">90d</button><button type="button" id="rngCustom" title="Pick any number of days">Custom</button>
@@ -389,10 +422,19 @@
     <button id="addBtn">+ Add site</button>
     <button id="signOut">Sign out</button>
     <button type="button" class="theme-toggle" data-theme-toggle></button>
+    <button type="button" id="menuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Menu">⋯</button>
   </header>
+  <div id="menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-m="link">🔗 New visitor link</button>
+    <button type="button" role="menuitem" data-m="add">+ Add site</button>
+    <button type="button" role="menuitem" data-m="theme"></button>
+    <button type="button" role="menuitem" data-m="keys">⌨ Keyboard shortcuts</button>
+    <button type="button" role="menuitem" data-m="out">Sign out</button>
+  </div>
+  <div id="ptr" aria-hidden="true"></div>
 
   <div class="body">
-  <aside class="sidebar" aria-label="Sites"><div class="sidein"><p class="sidehead">Sites</p><div id="sideList"></div></div></aside>
+  <aside class="sidebar" aria-label="Sites"><div class="sidein"><p class="sidehead">Sites</p><div id="sideList"></div><button type="button" id="sideAdd" class="sideadd">+ Add site</button></div></aside>
   <main id="main" tabindex="-1">
     <div class="statusbar"><button id="stBtn" type="button" hidden>⚙ Site settings</button><span id="updated" aria-live="polite"></span><button id="pauseBtn" type="button" aria-pressed="false" title="Stop the page refreshing itself every 30 seconds">⏸ Pause</button><button id="refreshBtn" type="button">↻ Refresh</button></div>
     <div id="banner" class="banner" role="alert" hidden><span id="bannerMsg"></span><button id="retryBtn" type="button">Retry</button></div>
@@ -531,6 +573,15 @@
   <div class="dlgfoot"><button type="button" id="cfCancel">Cancel</button><button type="button" id="cfOk">Confirm</button></div>
 </dialog>
 
+<dialog id="siteSheet" class="sheet" aria-label="Choose a site">
+  <div class="grab" aria-hidden="true"></div>
+  <div id="sheetList"></div>
+</dialog>
+<dialog id="kbDlg" aria-labelledby="kbTitle">
+  <h2 id="kbTitle">Keyboard shortcuts</h2>
+  <dl class="keys"><dt><kbd>r</kbd></dt><dd>Refresh now</dd><dt><kbd>/</kbd></dt><dd>Search named visitors</dd><dt><kbd>1</kbd> – <kbd>4</kbd></dt><dd>Today, 7 days, 30 days, 90 days</dd><dt><kbd>?</kbd></dt><dd>Show this list</dd><dt><kbd>Esc</kbd></dt><dd>Close a panel or dialog</dd></dl>
+  <div style="display:flex;justify-content:flex-end;margin-top:12px"><button type="button" id="kbClose" class="primary">Got it</button></div>
+</dialog>
 <dialog id="rngDlg" aria-labelledby="rgTitle">
   <form method="dialog" id="rgForm">
     <h2 id="rgTitle">Custom range</h2>
@@ -661,7 +712,7 @@ function setLoading(on, soft) {
 }
 
 // ---- Remember the view: site, range and filters live in the URL, with the last site and range kept as a fallback.
-function syncUrl() {
+function syncUrl(push, state) {
   const site = $('site').value;
   const u = new URLSearchParams();
   if (site) u.set('site', site === ALL ? 'all' : site);
@@ -672,7 +723,9 @@ function syncUrl() {
   if (rc.event !== 'all') u.set('event', rc.event);
   if (rc.country !== 'all') u.set('country', rc.country);
   const qs = u.toString();
-  history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+  const url = location.pathname + (qs ? '?' + qs : '') + (push ? '' : location.hash);
+  if (push && url !== location.pathname + location.search) history.pushState(state || null, '', url);
+  else history.replaceState(push ? state || null : history.state, '', url);
   try { localStorage.setItem('tk_view', JSON.stringify({ site: site === ALL ? 'all' : site, days })); } catch {}
 }
 function initFromUrl() {
@@ -692,11 +745,36 @@ function initFromUrl() {
   document.querySelectorAll('#rcWho button').forEach(b => b.classList.toggle('on', b.dataset.v === rc.who));
 }
 
+// The last good answer for each view is kept on this device, so with no signal the app can still show it.
+const CACHEABLE = /^\/api\/(stats|overview|sites|settings|visitor)(\?|$)/;
+let offlineAt = 0;
+const cacheKey = p => 'tk_c:' + p;
+function cachePut(path, data) {
+  try {
+    localStorage.setItem(cacheKey(path), JSON.stringify({ t: Date.now(), data }));
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('tk_c:'));
+    if (keys.length > 24) keys.map(k => [k, JSON.parse(localStorage.getItem(k) || '{}').t || 0]).sort((a, b) => a[1] - b[1]).slice(0, keys.length - 24).forEach(([k]) => localStorage.removeItem(k));
+  } catch (e) { /* storage full or blocked: carry on without it */ }
+}
+function cacheGet(path) { try { return JSON.parse(localStorage.getItem(cacheKey(path)) || 'null'); } catch (e) { return null; } }
+function cacheClear() { try { Object.keys(localStorage).filter(k => k.startsWith('tk_c:')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }
+
 async function api(path, opts = {}) {
-  const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...opts.headers } });
+  const cacheable = (!opts.method || opts.method === 'GET') && CACHEABLE.test(path);
+  let r;
+  try {
+    r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...opts.headers } });
+  } catch (e) {
+    const hit = cacheable && e instanceof TypeError ? cacheGet(path) : null;
+    if (!hit) throw e;
+    offlineAt = Math.max(offlineAt, hit.t);
+    return hit.data;
+  }
   if (r.status === 401) { signOut(true); throw new Error('unauthorized'); }
   if (!r.ok && r.status !== 204) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
-  return r.status === 204 ? null : r.json();
+  const data = r.status === 204 ? null : await r.json();
+  if (cacheable && data) cachePut(path, data);
+  return data;
 }
 
 // On a phone, focusing the field opens the keyboard over the card (and over the fingerprint button), so skip it on touch-first devices.
@@ -704,7 +782,7 @@ const touchFirst = () => Boolean(window.matchMedia) && matchMedia('(pointer: coa
 function focusPw(select) { if (touchFirst()) return; $('pw').focus(); if (select) $('pw').select(); }
 
 function signOut(expired) {
-  token = ''; sessionStorage.removeItem('tk_admin'); try { localStorage.removeItem('tk_admin_long'); } catch (e) {} clearInterval(timer); lastUpdated = 0; showBanner('');
+  cacheClear(); token = ''; sessionStorage.removeItem('tk_admin'); try { localStorage.removeItem('tk_admin_long'); } catch (e) {} clearInterval(timer); lastUpdated = 0; showBanner('');
   $('app').hidden = true; $('login').hidden = false;
   $('pw').value = ''; focusPw();
   if (expired === true) bioAuto = true;
@@ -782,7 +860,7 @@ const ALL = '__all';
 function pinRange() {
   const h = document.querySelector('header'), r = $('range');
   const phone = matchMedia('(max-width: 640px)').matches && r.offsetParent !== null;
-  h.style.setProperty('--hdr-top', phone ? -(h.offsetHeight - r.offsetHeight - 24) + 'px' : '0px');
+  h.style.setProperty('--hdr-top', phone ? -(r.offsetTop - 8) + 'px' : '0px');
 }
 addEventListener('resize', pinRange);
 new MutationObserver(pinRange).observe(document.body, { attributes: true, attributeFilter: ['class'] });
@@ -794,9 +872,18 @@ paintPause();
 const compact = n => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n));
 function paintSidebar() {
   const cur = $('site').value;
-  const items = sites.length > 1 ? [{ id: ALL, name: 'All sites', sub: `${sites.length} sites`, n: sites.reduce((a, s) => a + Number(s.views_30d), 0) }] : [];
-  sites.forEach(s => items.push({ id: s.id, name: s.name, sub: s.domain, n: Number(s.views_30d) }));
-  $('sideList').innerHTML = items.map(i => `<button type="button" class="sideitem${i.id === cur ? ' on' : ''}" data-id="${esc(i.id)}"${i.id === cur ? ' aria-current="page"' : ''}><span class="si-text"><b>${esc(i.name)}</b><small>${esc(i.sub)}</small></span><span class="si-n" title="Page views in the last 30 days">${compact(i.n)}</span></button>`).join('');
+  const items = sites.length > 1 ? [{ id: ALL, name: 'All sites', sub: `${sites.length} sites`, n: sites.reduce((a, s) => a + Number(s.views_30d), 0), live: sites.reduce((a, s) => a + Number(s.live || 0), 0) }] : [];
+  sites.forEach(s => items.push({ id: s.id, name: s.name, sub: s.domain, n: Number(s.views_30d), live: Number(s.live || 0) }));
+  $('sideList').innerHTML = items.map(i => `<button type="button" class="sideitem${i.id === cur ? ' on' : ''}" data-id="${esc(i.id)}"${i.id === cur ? ' aria-current="page"' : ''}><span class="si-text"><b>${esc(i.name)}</b><small>${esc(i.sub)}</small></span><span class="si-n" title="Page views in the last 30 days">${i.live ? `<span class="si-live">● ${i.live} · </span>` : ''}${compact(i.n)}</span></button>`).join('');
+  $('sheetList').innerHTML = $('sideList').innerHTML;
+  const curItem = items.find(i => i.id === cur);
+  $('siteBtnTxt').textContent = curItem ? curItem.name : 'Sites';
+  const online = sites.reduce((a, x) => a + Number(x.live || 0), 0);
+  $('liveDot').hidden = $('liveDot2').hidden = !online;
+  $('liveDot').title = $('liveDot2').title = `${online} online right now`;
+  const one = cur && cur !== ALL ? curItem?.name : '';
+  $('hSite').textContent = one || '';
+  document.title = one ? `${one} · Visitor Tracker` : 'Visitor Tracker';
 }
 // Rebuilds the dropdown (phones) and the sidebar (wide screens) from `sites`, keeping the current choice.
 function renderSiteList() {
@@ -812,10 +899,50 @@ async function refreshSites() {
 function selectSite(id) {
   $('site').value = id;
   settingsOpen = false;
-  updateLink(); resetFilters(); syncUrl(); paintSidebar(); load();
+  updateLink(); resetFilters(); syncUrl(true); paintSidebar(); load();
 }
 $('site').onchange = () => selectSite($('site').value);
 $('sideList').addEventListener('click', e => { const b = e.target.closest('.sideitem'); if (b) selectSite(b.dataset.id); });
+$('siteBtn').onclick = () => { paintSidebar(); $('siteSheet').showModal(); $('sheetList').querySelector('.sideitem.on')?.scrollIntoView({ block: 'nearest' }); };
+$('sheetList').addEventListener('click', e => { const b = e.target.closest('.sideitem'); if (b) { $('siteSheet').close(); selectSite(b.dataset.id); } });
+$('siteSheet').addEventListener('click', e => { if (e.target === $('siteSheet')) $('siteSheet').close(); });
+
+// Account menu (all screen sizes): new link, add site, theme, shortcuts, sign out.
+async function newLink() {
+  if (!$('site').value || $('site').value === ALL) return;
+  if (settingsOpen) { $('stBtn').click(); for (let i = 0; i < 30 && $('dash').hidden; i++) await new Promise(r => setTimeout(r, 100)); }
+  $('linkCard').open = true;
+  $('linkCard').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  $('lkName').focus({ preventScroll: true });
+}
+$('sideAdd').onclick = () => $('addBtn').click();
+$('kbClose').onclick = () => $('kbDlg').close();
+function closeMenu() { $('menu').hidden = true; $('menuBtn').setAttribute('aria-expanded', 'false'); }
+$('menuBtn').onclick = e => {
+  e.stopPropagation();
+  if (!$('menu').hidden) return closeMenu();
+  const dark = curTheme() === 'dark';
+  const single = $('site').value && $('site').value !== ALL;
+  document.querySelector('#menu [data-m=link]').hidden = !single;
+  document.querySelector('#menu [data-m=keys]').hidden = matchMedia('(pointer: coarse)').matches;
+  document.querySelector('#menu [data-m=theme]').textContent = dark ? '☀ Switch to light mode' : '☾ Switch to dark mode';
+  $('menu').style.top = ($('menuBtn').getBoundingClientRect().bottom + 6) + 'px';
+  $('menu').hidden = false; $('menuBtn').setAttribute('aria-expanded', 'true');
+  $('menu').querySelector('button').focus();
+};
+$('menu').onclick = e => {
+  const b = e.target.closest('[data-m]');
+  if (!b) return;
+  closeMenu();
+  if (b.dataset.m === 'add') $('addBtn').click();
+  else if (b.dataset.m === 'link') newLink();
+  else if (b.dataset.m === 'keys') $('kbDlg').showModal();
+  else if (b.dataset.m === 'theme') document.querySelector('header .theme-toggle').click();
+  else $('signOut').click();
+};
+document.addEventListener('click', e => { if (!$('menu').hidden && !e.target.closest('#menu')) closeMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('menu').hidden) { closeMenu(); $('menuBtn').focus(); } });
+addEventListener('scroll', () => { if (!$('menu').hidden) closeMenu(); }, { passive: true });
 
 async function loadSites(selectId) {
   sites = await api('/api/sites');
@@ -839,7 +966,7 @@ async function goSite(id, name) {
   $('site').value = id;
   settingsOpen = false;
   paintSidebar();
-  updateLink(); resetFilters(); syncUrl();
+  updateLink(); resetFilters(); syncUrl(true);
   await load();
   if (name) openVisitor(name);
 }
@@ -956,11 +1083,16 @@ const agoEl = t => `<time datetime="${esc(t)}" title="${esc(new Date(t).toLocale
 
 async function load({ quiet = false, soft = false } = {}) {
   const seq = ++loadSeq;
+  offlineAt = 0;
   if (!quiet) setLoading(true, soft);
   $('refreshBtn').disabled = true; $('refreshBtn').textContent = '↻ Refreshing…';
   try {
     await loadView(seq);
-    if (seq === loadSeq) { lastUpdated = Date.now(); showBanner(''); paintUpdated(); }
+    if (seq === loadSeq) {
+      lastUpdated = offlineAt || Date.now();
+      showBanner(offlineAt ? `Offline. Showing data saved at ${new Date(offlineAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}.` : '');
+      paintUpdated();
+    }
   } catch (e) {
     if (e.message !== 'unauthorized' && seq === loadSeq) showBanner(errText(e));
   } finally {
@@ -1088,7 +1220,11 @@ async function loadSettings(id, seq) {
     <p class="hint" style="margin:8px 0 0">Opens in Excel or Google Sheets.</p>`;
 }
 
-$('stBtn').onclick = () => { settingsOpen = !settingsOpen; stDirty = false; stMsg(''); stTop(''); dzMsg(''); syncUrl(); load(); };
+$('stBtn').onclick = () => {
+  if (settingsOpen && history.state?.st) { history.back(); return; }
+  settingsOpen = !settingsOpen; stDirty = false; stMsg(''); stTop(''); dzMsg('');
+  syncUrl(settingsOpen, settingsOpen ? { st: 1 } : null); load();
+};
 
 $('stForm').onsubmit = async e => {
   e.preventDefault();
@@ -1401,6 +1537,16 @@ function showTip(col) {
 $('chart').addEventListener('mouseover', e => { const c = e.target.closest('.col'); if (c) showTip(c); });
 $('chart').addEventListener('click', e => { const c = e.target.closest('.col'); if (c) showTip(c); });
 $('chart').addEventListener('mouseleave', () => { tip.hidden = true; });
+// Touch: drag a finger across the chart to read each bar.
+const colFromX = x => {
+  const n = $('chart').querySelectorAll('.col').length, r = $('chart').getBoundingClientRect();
+  return n ? Math.max(0, Math.min(n - 1, Math.floor(((x - r.left) / r.width) * n))) : -1;
+};
+['pointerdown', 'pointermove'].forEach(t => $('chart').addEventListener(t, e => {
+  if (e.pointerType !== 'touch' || (t === 'pointermove' && !(e.buttons & 1))) return;
+  const i = colFromX(e.clientX);
+  if (i >= 0 && i !== chartPos) stepChart(i);
+}));
 // Keyboard: focus the chart, then arrow keys step through the bars (Home/End jump, Escape hides the tooltip).
 let chartPos = -1;
 function stepChart(i) {
@@ -1514,18 +1660,40 @@ async function openVisitor(name) {
   $('vbody').innerHTML = '<div class="empty">Loading…</div>';
   $('overlay').hidden = false; $('vpanel').hidden = false;
   document.body.classList.add('modal-open');
-  history.replaceState(null, '', '#s=' + $('site').value + '&v=' + encodeURIComponent(name));
+  history.pushState({ vp: 1 }, '', '#s=' + $('site').value + '&v=' + encodeURIComponent(name));
   $('vclose').focus();
   try { renderVisitor(await api(`/api/visitor?site=${$('site').value}&name=${encodeURIComponent(name)}`)); }
   catch (e) { $('vbody').innerHTML = `<div class="empty">${esc(e.message === 'not found' ? 'No events for this visitor.' : 'Could not load this visitor.')}</div>`; }
 }
 
-function closeVisitor() {
+// The panel has its own history entry, so Back (or the Android back button) closes it instead of leaving the app.
+function hideVisitor(fromHistory) {
   $('overlay').hidden = true; $('vpanel').hidden = true;
   document.body.classList.remove('modal-open');
-  history.replaceState(null, '', location.pathname + location.search);
+  if (!fromHistory) history.replaceState(null, '', location.pathname + location.search);
   lastFocus?.focus?.();
 }
+function closeVisitor() {
+  if (history.state?.vp) history.back(); else hideVisitor();
+}
+
+// Back/forward: close the panel, or re-read the site, range and settings view from the URL.
+function applyUrl() {
+  initFromUrl();
+  const want = wantSite === 'all' ? ALL : wantSite;
+  wantSite = null;
+  if (want && [...$('site').options].some(o => o.value === want)) $('site').value = want;
+  if (!$('site').value || $('site').value === ALL) settingsOpen = false;
+  stDirty = false;
+  paintSidebar(); updateLink();
+}
+addEventListener('popstate', () => {
+  if ($('app').hidden) return;
+  const vp = Boolean(history.state?.vp);
+  if (!$('vpanel').hidden && !vp) return hideVisitor(true);
+  if (vp) return;
+  applyUrl(); load();
+});
 
 document.addEventListener('click', e => {
   const b = e.target.closest('.namebtn');
@@ -1535,6 +1703,31 @@ $('vclose').onclick = closeVisitor;
 $('overlay').onclick = closeVisitor;
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('vpanel').hidden) closeVisitor(); });
 
+// Pull down from the top of the page to refresh (phones).
+let ptr = null;
+const paintPtr = (d, done) => {
+  const el = $('ptr');
+  el.style.transition = done ? 'transform .2s, opacity .2s' : 'none';
+  el.style.transform = d ? `translateY(${Math.min(d, 90) - 10}px)` : 'translateY(-100%)';
+  el.style.opacity = d ? Math.min(1, d / 60) : 0;
+  el.innerHTML = d ? `<span>${d >= 70 ? '↑ Release to refresh' : '↓ Pull to refresh'}</span>` : '';
+};
+document.addEventListener('touchstart', e => {
+  const blocked = !matchMedia('(max-width: 640px)').matches || scrollY > 0 || $('app').hidden || !$('vpanel').hidden || document.querySelector('dialog[open]') || !$('menu').hidden;
+  ptr = blocked ? null : { y: e.touches[0].clientY, d: 0 };
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!ptr) return;
+  const d = e.touches[0].clientY - ptr.y;
+  ptr.d = scrollY > 0 ? 0 : Math.max(0, d);
+  paintPtr(ptr.d);
+}, { passive: true });
+document.addEventListener('touchend', () => {
+  if (!ptr) return;
+  const go = ptr.d >= 70; ptr = null; paintPtr(0, true);
+  if (go) { refreshSites(); load({ soft: true }); }
+});
+
 // Keyboard shortcuts: r refresh, / search names, 1-4 range. Ignored while typing or when a dialog is open.
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1543,6 +1736,7 @@ document.addEventListener('keydown', e => {
   if (document.querySelector('dialog[open]') || !$('vpanel').hidden) return;
   if (e.key === 'r') { $('refreshBtn').click(); }
   else if (e.key === '/' && $('nmSearch') && $('nmSearch').offsetParent) { e.preventDefault(); $('nmSearch').focus(); }
+  else if (e.key === '?') { $('kbDlg').showModal(); }
   else if ('1234'.includes(e.key) && e.key) { const b = document.querySelectorAll('#range button')[Number(e.key) - 1]; if (b) b.click(); }
 });
 
