@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   const sincePrev = new Date(Date.now() - 2 * days * 864e5).toISOString();
   const unit = days <= 1 ? 'hour' : 'day';
 
-  const [totals, prev, daily, paths, countries, referrers, devices, named, recent, custom, live] = await Promise.all([
+  const [totals, prev, daily, paths, countries, referrers, devices, named, recent, custom, live, campaigns] = await Promise.all([
     sql`select count(*)::int as views, count(distinct vid)::int as visitors,
         count(distinct vid) filter (where name is not null)::int as named
         from events where event = 'pageview' and site_id = ${site} and ts >= ${since}`,
@@ -45,11 +45,17 @@ export default async function handler(req, res) {
         where event <> 'pageview' and site_id = ${site} and ts >= ${since} group by 1 order by n desc limit 10`,
     sql`select count(distinct vid)::int as n from events
         where site_id = ${site} and ts >= now() - interval '5 minutes'`,
+    sql`select concat_ws(' · ', utm_source, utm_medium, utm_campaign) as label,
+        count(distinct vid)::int as n,
+        count(distinct vid) filter (where event like 'downloaded-%' or event in ('clicked-email', 'clicked-phone'))::int as acted
+        from events where site_id = ${site} and ts >= ${since}
+          and (utm_source is not null or utm_medium is not null or utm_campaign is not null)
+        group by utm_source, utm_medium, utm_campaign order by n desc limit 10`,
   ]);
 
   res.setHeader('Cache-Control', 'no-store');
   res.json({
-    totals: totals[0], prev: prev[0], daily, paths, countries, referrers, devices, named, recent, custom,
+    totals: totals[0], prev: prev[0], daily, paths, countries, referrers, devices, named, recent, custom, campaigns,
     live: live[0].n, days,
   });
 }

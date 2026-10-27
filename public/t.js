@@ -3,6 +3,7 @@
    Name a visitor with a link:  https://yoursite.com/?ref=Sara-Acme
    or in code:                  tracker.identify('Sara')
    Custom events:               tracker.track('opened-projects')
+   Campaigns:                   https://yoursite.com/?utm_source=linkedin&utm_campaign=job-oct
    Clicks are logged on their own: email and phone links, file downloads (pdf, docx, zip...)
    and links to other sites. Skip a link with data-track="off", or all of it with data-auto="off" on this script. */
 (function () {
@@ -26,10 +27,19 @@
   if (fromLink) set('tk_name', fromLink.replace(/[-_+]/g, ' ').trim());
   var name = get('tk_name');
 
+  // Campaign tags stay with the tab, so the downloads and clicks that follow are credited to them.
+  var utm = null;
+  try { utm = JSON.parse(sessionStorage.getItem('tk_utm') || 'null'); } catch (e) {}
+  var us = params.get('utm_source'), um = params.get('utm_medium'), uc = params.get('utm_campaign');
+  if (us || um || uc) {
+    utm = { source: us, medium: um, campaign: uc };
+    try { sessionStorage.setItem('tk_utm', JSON.stringify(utm)); } catch (e) {}
+  }
+
   function send(event) {
     var body = JSON.stringify({
       site: site, vid: vid, name: name, event: event || 'pageview',
-      path: location.pathname + location.hash,
+      path: location.pathname + location.hash, utm: utm,
       referrer: document.referrer ? new URL(document.referrer).hostname : ''
     });
     if (navigator.sendBeacon) navigator.sendBeacon(endpoint, body);

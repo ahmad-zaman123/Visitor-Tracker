@@ -1,7 +1,7 @@
 import { sql, ensureSchema, isAdmin } from './_lib.js';
 
 const BATCH = 5000;
-const COLS = ['ts', 'site', 'name', 'event', 'path', 'referrer', 'country', 'city', 'device', 'browser', 'visitor_id'];
+const COLS = ['ts', 'site', 'name', 'event', 'path', 'referrer', 'country', 'city', 'device', 'browser', 'visitor_id', 'utm_source', 'utm_medium', 'utm_campaign'];
 
 // A leading = + - @ makes spreadsheets run the cell as a formula, so those get a quote in front.
 const cell = v => {
@@ -33,10 +33,10 @@ export default async function handler(req, res) {
     res.write('\ufeff' + COLS.join(',') + '\n');
     let after = 0;
     for (;;) {
-      const rows = await sql`select id, ts, name, event, path, referrer, country, city, device, browser, vid
+      const rows = await sql`select id, ts, name, event, path, referrer, country, city, device, browser, vid, utm_source, utm_medium, utm_campaign
         from events where site_id = ${site} and id > ${after} order by id limit ${BATCH}`;
       if (!rows.length) break;
-      res.write(rows.map(r => [r.ts, s.name, r.name, r.event, r.path, r.referrer, r.country, r.city, r.device, r.browser, r.vid].map(cell).join(',')).join('\n') + '\n');
+      res.write(rows.map(r => [r.ts, s.name, r.name, r.event, r.path, r.referrer, r.country, r.city, r.device, r.browser, r.vid, r.utm_source, r.utm_medium, r.utm_campaign].map(cell).join(',')).join('\n') + '\n');
       after = Number(rows[rows.length - 1].id);
       if (rows.length < BATCH) break;
     }
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   res.write(`{"exported_at":${JSON.stringify(new Date().toISOString())},"sites":${JSON.stringify(sites)},"events":[`);
   let after = 0, first = true;
   for (;;) {
-    const rows = await sql`select id, site_id, ts, vid, name, event, path, referrer, country, city, device, browser, ip_hash
+    const rows = await sql`select id, site_id, ts, vid, name, event, path, referrer, country, city, device, browser, ip_hash, utm_source, utm_medium, utm_campaign
       from events where id > ${after} order by id limit ${BATCH}`;
     if (!rows.length) break;
     res.write((first ? '' : ',') + rows.map(r => JSON.stringify(r)).join(','));

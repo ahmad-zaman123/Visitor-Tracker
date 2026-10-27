@@ -16,6 +16,7 @@ export function ensureSchema() {
       ts timestamptz not null default now(),
       vid text not null, name text, event text not null default 'pageview',
       path text, referrer text, country text, city text, device text, browser text, ip_hash text)`;
+    await sql`alter table events add column if not exists utm_source text, add column if not exists utm_medium text, add column if not exists utm_campaign text`;
     await sql`create index if not exists events_site_ts on events (site_id, ts desc)`;
     await sql`create table if not exists login_attempts (ip_hash text not null, ts timestamptz not null default now())`;
     await sql`create index if not exists login_attempts_ts on login_attempts (ts)`;

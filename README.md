@@ -53,3 +53,10 @@ Skip one link with `data-track="off"`, or turn it all off with `data-auto="off"`
 ## Exports and backup
 
 Site settings has a CSV download of one site's events and a JSON backup of every site and event.
+
+## Campaigns
+
+Add `utm_source`, `utm_medium` and/or `utm_campaign` to a link (for example `?utm_source=linkedin&utm_campaign=job-oct`)
+and the visit, plus any downloads and clicks that follow in the same tab, are credited to it. The Campaigns card shows
+visitors per tag and how many of them downloaded a file or clicked email or phone. The visitor link builder has
+"Shared on" and "Campaign" fields that add the tags for you.

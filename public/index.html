@@ -305,7 +305,9 @@
         <div class="linkform">
           <label>Who is it for?<input id="lkName" placeholder="Sara Acme" maxlength="80" autocomplete="off"></label>
           <label>Page<input id="lkPath" placeholder="/" autocomplete="off"></label>
-          <div class="linkout"><code id="lkOut" class="dim">Type a name to get a link</code><button id="lkCopy" class="primary" disabled>Copy</button></div>
+          <label>Shared on (optional)<input id="lkSource" placeholder="linkedin" maxlength="40" autocomplete="off"></label>
+          <label>Campaign (optional)<input id="lkCampaign" placeholder="job-oct" maxlength="40" autocomplete="off"></label>
+          <div class="linkout"><code id="lkOut" class="dim">Type a name, or where you will share it</code><button id="lkCopy" class="primary" disabled>Copy</button></div>
           <p class="hint">Send this link instead of the plain one. When they open it, their visits show up under their name, and later visits from the same browser stay named.</p>
         </div>
       </details>
@@ -328,6 +330,7 @@
         <div class="card"><h2>Countries</h2><div id="countries"></div></div>
         <div class="card"><h2>Devices</h2><div id="devices"></div></div>
         <div class="card"><h2>Custom events</h2><div id="custom"></div></div>
+        <div class="card"><h2>Campaigns</h2><div id="campaigns"></div></div>
       </div>
 
       <div class="card">
@@ -756,6 +759,9 @@ async function loadView(seq) {
   $('countries').innerHTML = bars(d.countries, countryLabel);
   $('devices').innerHTML = bars(d.devices);
   $('custom').innerHTML = bars(d.custom);
+  $('campaigns').innerHTML = d.campaigns.length
+    ? bars(d.campaigns.map(c => ({ ...c, label: c.label + (c.acted ? ` (${c.acted} downloaded or contacted)` : '') })))
+    : '<div class="empty">No tagged visits yet. Make a link below with “Shared on” filled in, or add <code>?utm_source=linkedin</code> to any link.</div>';
 
   fillRecentFilters();
   renderRecent();
@@ -1063,21 +1069,28 @@ $('chart').addEventListener('blur', () => { tip.hidden = true; chartPos = -1; $(
 function visitorLink() {
   const site = sites.find(x => x.id === $('site').value);
   const name = $('lkName').value.trim().replace(/\s+/g, '-');
-  if (!site || !name) return '';
+  const src = $('lkSource').value.trim(), camp = $('lkCampaign').value.trim();
+  if (!site || !(name || src || camp)) return '';
   let path = $('lkPath').value.trim() || '/';
   if (!path.startsWith('/')) path = '/' + path;
-  return `https://${site.domain}${path}${path.includes('?') ? '&' : '?'}ref=${encodeURIComponent(name)}`;
+  const q = [];
+  if (name) q.push('ref=' + encodeURIComponent(name));
+  if (src) q.push('utm_source=' + encodeURIComponent(src.replace(/\s+/g, '-')));
+  if (camp) q.push('utm_campaign=' + encodeURIComponent(camp.replace(/\s+/g, '-')));
+  return `https://${site.domain}${path}${path.includes('?') ? '&' : '?'}${q.join('&')}`;
 }
 
 function updateLink() {
   const link = visitorLink();
-  $('lkOut').textContent = link || 'Type a name to get a link';
+  $('lkOut').textContent = link || 'Type a name, or where you will share it';
   $('lkOut').classList.toggle('dim', !link);
   $('lkCopy').disabled = !link;
 }
 
 $('lkName').oninput = updateLink;
 $('lkPath').oninput = updateLink;
+$('lkSource').oninput = updateLink;
+$('lkCampaign').oninput = updateLink;
 $('lkCopy').onclick = async () => {
   const link = visitorLink();
   if (!link) return;

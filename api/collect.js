@@ -42,10 +42,12 @@ export default async function handler(req, res) {
     const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
     const city = req.headers['x-vercel-ip-city'];
 
-    await sql`insert into events (site_id, vid, name, event, path, referrer, country, city, device, browser, ip_hash)
+    const utm = b.utm && typeof b.utm === 'object' ? b.utm : {};
+    await sql`insert into events (site_id, vid, name, event, path, referrer, country, city, device, browser, ip_hash, utm_source, utm_medium, utm_campaign)
       values (${site}, ${vid}, ${clip(b.name, 80)}, ${clip(b.event, 60) || 'pageview'}, ${clip(b.path, 300)},
         ${clip(b.referrer, 300)}, ${clip(req.headers['x-vercel-ip-country'], 2)},
-        ${city ? decodeURIComponent(city) : null}, ${device}, ${browser}, ${hashIp(ip)})`;
+        ${city ? decodeURIComponent(city) : null}, ${device}, ${browser}, ${hashIp(ip)},
+        ${clip(utm.source, 60)}, ${clip(utm.medium, 60)}, ${clip(utm.campaign, 60)})`;
 
     res.status(204).end();
   } catch (e) {
