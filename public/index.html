@@ -13,12 +13,12 @@
 <style>
   :root {
     --bg: #f6f7f9; --card: #fff; --text: #14181f; --muted: #667085; --line: #e4e7ec;
-    --accent: #2563eb; --bar: #dbe7ff; --ok: #16a34a;
+    --accent: #2563eb; --bar: #dbe7ff; --ok: #16a34a; --danger: #dc2626;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 55%, transparent); color-scheme: dark; }
+    :root:not([data-theme="light"]) { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 72%, transparent); --danger: #f87171; color-scheme: dark; }
   }
-  :root[data-theme="dark"] { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 55%, transparent); color-scheme: dark; }
+  :root[data-theme="dark"] { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 72%, transparent); --danger: #f87171; color-scheme: dark; }
   :root[data-theme="light"] { color-scheme: light; }
   :root { --views: color-mix(in srgb, var(--accent) 35%, transparent); }
   ::placeholder { color: var(--muted); opacity: .85; }
@@ -87,12 +87,14 @@
   .pills button + button { border-left: 1px solid var(--line); }
   .pills button.on { background: var(--accent); color: #fff; }
   .stat small { display: block; font-size: 12px; margin-top: 2px; color: var(--muted); min-height: 1em; }
-  .stat small .up { color: var(--ok); } .stat small .down { color: #dc2626; }
+  .stat small .up { color: var(--ok); } .stat small .down { color: var(--danger); }
   .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin: -4px 0 10px; text-transform: none; letter-spacing: 0; }
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
   .chartwrap { position: relative; }
   .ymax { position: absolute; top: 0; left: 0; right: 0; border-top: 1px dashed var(--line); font-size: 11px; color: var(--muted); line-height: 1; pointer-events: none; }
   .ymid { top: 50%; opacity: .7; }
+  .chartwrap .chart { position: relative; z-index: 1; }
+  .chartwrap .ymax { z-index: 0; }
   .ymax b { font-weight: 400; background: var(--card); padding-right: 4px; position: relative; top: -6px; }
   .col.on { background: color-mix(in srgb, var(--accent) 12%, transparent); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -196,7 +198,7 @@
   .stform input { width: 100%; }
   .stid { margin: 0; font-size: 12px; color: var(--muted); }
   .msg-ok { color: var(--ok); margin: 0; font-size: 13px; }
-  .msg-err { color: #dc2626; margin: 0; font-size: 13px; }
+  .msg-err { color: var(--danger); margin: 0; font-size: 13px; }
   .exports { display: flex; flex-wrap: wrap; gap: 10px; }
   .stnav { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 0; }
   .stnav button { border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
@@ -216,11 +218,11 @@
   .dzrow button { flex: none; }
   #stSave:disabled { background: var(--line); border-color: var(--line); color: var(--muted); opacity: 1; }
   body.in-settings #range, body.in-settings #updated, body.in-settings #refreshBtn, body.in-settings #pauseBtn { display: none; }
-  @media (max-width: 520px) { .dzrow { flex-direction: column; align-items: stretch; } .snipwrap { flex-direction: column; } }
+  @media (max-width: 520px) { .dzrow { flex-direction: column; align-items: stretch; } .snipwrap { flex-direction: column; align-items: stretch; } }
   .warn { background: color-mix(in srgb, #f59e0b 14%, var(--card)); border: 1px solid color-mix(in srgb, #f59e0b 45%, var(--line)); border-radius: 8px; padding: 8px 10px; }
   .card.dz { border-color: color-mix(in srgb, #dc2626 40%, var(--line)); }
   button.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
-  button.danger-outline { color: #dc2626; border-color: #dc2626; }
+  button.danger-outline { color: var(--danger); border-color: var(--danger); }
   .theme-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; }
   #login .theme-toggle { position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
   .statusbar { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 10px; color: var(--muted); font-size: 12px; margin-bottom: -8px; }
@@ -236,7 +238,7 @@
   .namebtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
   .namebtn:hover, .ovname:hover { text-decoration: underline; }
   .ovname { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
-  .sc-delta .up { color: var(--ok); } .sc-delta .down { color: #dc2626; }
+  .sc-delta .up { color: var(--ok); } .sc-delta .down { color: var(--danger); }
   .sites-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
   .sitecard { display: flex; flex-direction: column; gap: 4px; text-align: left; width: 100%; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; cursor: pointer; }
   .sitecard:hover { border-color: var(--accent); }
@@ -317,12 +319,12 @@
   .banner .btns { display: flex; gap: 8px; flex: none; }
   .biorow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
   .biorow small { color: var(--muted); display: block; }
-  .err { margin: 0; color: #dc2626; font-size: 13px; }
+  .err { margin: 0; color: var(--danger); font-size: 13px; }
   .err::before { content: '⚠ '; }
   .note { margin: 0; font-size: 13px; color: var(--muted); }
   .note.ok { color: var(--ok); }
-  .pwwrap input[aria-invalid="true"] { border-color: #dc2626; }
-  .pwwrap input[aria-invalid="true"]:focus-visible { outline-color: #dc2626; }
+  .pwwrap input[aria-invalid="true"] { border-color: var(--danger); }
+  .pwwrap input[aria-invalid="true"]:focus-visible { outline-color: var(--danger); }
   .forgot { font-size: 13px; color: var(--muted); }
   .forgot summary { cursor: pointer; width: fit-content; }
   .forgot p { margin: 8px 0 0; }
