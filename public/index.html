@@ -13,10 +13,12 @@
     --accent: #2563eb; --bar: #dbe7ff; --ok: #16a34a;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; color-scheme: dark; }
+    :root:not([data-theme="light"]) { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 55%, transparent); color-scheme: dark; }
   }
-  :root[data-theme="dark"] { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; color-scheme: dark; }
+  :root[data-theme="dark"] { --bg: #0e1116; --card: #161b22; --text: #e6e9ef; --muted: #8b95a5; --line: #262d38; --accent: #5b8def; --bar: #1d2a44; --views: color-mix(in srgb, var(--accent) 55%, transparent); color-scheme: dark; }
   :root[data-theme="light"] { color-scheme: light; }
+  :root { --views: color-mix(in srgb, var(--accent) 35%, transparent); }
+  ::placeholder { color: var(--muted); opacity: .85; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
   header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--card); }
@@ -25,7 +27,7 @@
   button { cursor: pointer; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button:disabled { opacity: .5; cursor: not-allowed; }
-  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  main { width: 100%; max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; align-content: start; }
   .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: hidden; }
   .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 12px; }
@@ -61,13 +63,16 @@
   .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin: -4px 0 10px; text-transform: none; letter-spacing: 0; }
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
   .chartwrap { position: relative; }
+  .ymax { position: absolute; top: 0; left: 0; right: 0; border-top: 1px dashed var(--line); font-size: 11px; color: var(--muted); line-height: 1; pointer-events: none; }
+  .ymax b { font-weight: 400; background: var(--card); padding-right: 4px; position: relative; top: -6px; }
+  .col.on { background: color-mix(in srgb, var(--accent) 12%, transparent); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .skip { position: absolute; left: 8px; top: -48px; z-index: 50; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
   .skip:focus { top: 8px; }
   .col { flex: 1; min-width: 0; height: 100%; display: flex; align-items: flex-end; cursor: default; }
   .col:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
-  .col .b { position: relative; width: 100%; background: color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 3px 3px 0 0; min-height: 2px; }
+  .col .b { position: relative; width: 100%; background: var(--views); border-radius: 3px 3px 0 0; min-height: 2px; }
   .col .u { position: absolute; left: 0; right: 0; bottom: 0; background: var(--accent); }
   .xaxis { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 6px; }
   #tip { position: absolute; z-index: 5; pointer-events: none; background: var(--text); color: var(--bg); font-size: 12px; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); }
@@ -77,9 +82,12 @@
   .count { color: var(--muted); font-size: 12px; margin-left: auto; }
   .mobile-only { display: none; }
   .sortbtn { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
-  .sortbtn:hover { color: var(--text); }
+  .sortbtn:hover { color: var(--text); text-decoration: underline; }
+  .sortbtn:not(.on)::after { content: ' ↕'; opacity: .4; }
   @media (max-width: 640px) {
-    header { padding: 12px; }
+    header { padding: 12px; gap: 8px; }
+    header h1 { margin-right: auto; font-size: 16px; }
+    header #addBtn, header #signOut { padding: 6px 8px; }
     header #site { flex: 1 1 100%; order: 5; }
     header #range { flex: 1 1 100%; order: 6; }
     header #range button { flex: 1; padding: 10px 0; }
@@ -89,10 +97,11 @@
     .mobile-only { display: inline-block; }
     .rt thead { display: none; }
     .rt, .rt tbody { display: block; width: 100%; }
-    .rt tr { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; }
-    .rt td { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border: 0; white-space: normal; text-align: right; overflow-wrap: anywhere; }
-    .rt td::before { content: attr(data-label); color: var(--muted); font-size: 12px; text-align: left; flex: none; }
-    .rt td.pri { order: -1; font-weight: 600; justify-content: flex-start; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+    .rt tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; }
+    .rt td { display: flex; flex-direction: column; gap: 0; padding: 4px 0; border: 0; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+    .rt td::before { content: attr(data-label); color: var(--muted); font-size: 11px; flex: none; }
+    .rt td.pri { order: -1; grid-column: 1 / -1; font-weight: 600; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+    .rt td[data-label="Location"], .rt td[data-label="Page"] { grid-column: 1 / -1; }
     .rt td.pri::before { content: none; }
   }
   .body { display: block; }
@@ -111,7 +120,7 @@
   .sideitem b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sideitem small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .si-n { font-size: 12px; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; flex: none; }
-  #stBtn { margin-right: auto; padding: 3px 10px; font-size: 12px; }
+  #stBtn { margin-right: auto; padding: 5px 12px; font-size: 13px; }
   #settings { display: grid; gap: 16px; max-width: 680px; }
   .sttitle { margin: 0; font-size: 20px; }
   .stform { display: grid; gap: 14px; }
@@ -130,6 +139,7 @@
   .statusbar { display: flex; justify-content: flex-end; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin-bottom: -8px; }
   .statusbar button { padding: 3px 10px; font-size: 12px; }
   .banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; background: color-mix(in srgb, #dc2626 12%, var(--card)); border: 1px solid color-mix(in srgb, #dc2626 40%, var(--line)); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+  main.failed > :not(.statusbar):not(.banner) { display: none; }
   @keyframes pulse { 50% { opacity: .55; } }
   .is-loading .card, .is-loading .sitecard { animation: pulse 1.1s ease-in-out infinite; }
   @media (prefers-reduced-motion: reduce) { .is-loading .card, .is-loading .sitecard { animation: none; opacity: .6; } }
@@ -153,7 +163,7 @@
   .spark { display: flex; align-items: flex-end; gap: 1px; height: 36px; margin: 8px 0 4px; }
   .spark i { flex: 1; min-width: 1px; background: color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 1px; min-height: 2px; }
   .sc-foot { font-size: 12px; color: var(--muted); }
-  .sitecard.idle { opacity: .75; }
+  .sitecard.idle .sc-num { color: var(--muted); }
 
   .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 30; }
   .panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--card); border-left: 1px solid var(--line); z-index: 31; display: flex; flex-direction: column; box-shadow: -8px 0 24px rgba(0, 0, 0, .15); }
@@ -183,6 +193,12 @@
   dialog input { width: 100%; color: var(--text); }
   .err { margin: 0; color: #dc2626; font-size: 13px; }
   .dlgfoot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .linkcard summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+  .linkcard summary::-webkit-details-marker { display: none; }
+  .linkcard summary h2 { margin: 0; }
+  .linkcard summary::after { content: '+ New link'; font-size: 13px; color: var(--accent); }
+  .linkcard[open] summary::after { content: 'Hide'; }
+  .linkcard[open] summary { margin-bottom: 12px; }
   .linkform { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
   .linkform label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
   .linkform input { width: 100%; }
@@ -227,7 +243,7 @@
   <div class="body">
   <aside class="sidebar" aria-label="Sites"><div class="sidein"><p class="sidehead">Sites</p><div id="sideList"></div></div></aside>
   <main id="main" tabindex="-1">
-    <div class="statusbar"><button id="stBtn" type="button" hidden>Settings</button><span id="updated" aria-live="polite"></span><button id="refreshBtn" type="button">↻ Refresh</button></div>
+    <div class="statusbar"><button id="stBtn" type="button" hidden>⚙ Site settings</button><span id="updated" aria-live="polite"></span><button id="refreshBtn" type="button">↻ Refresh</button></div>
     <div id="banner" class="banner" role="alert" hidden><span id="bannerMsg"></span><button id="retryBtn" type="button">Retry</button></div>
     <section id="setup" class="card" hidden></section>
     <div id="overview" hidden>
@@ -277,21 +293,21 @@
 
       <div class="card" style="margin-bottom:16px">
         <h2 id="chartTitle">Traffic</h2>
-        <div class="legend"><span><i style="background:color-mix(in srgb, var(--accent) 35%, transparent)"></i>Page views</span><span><i style="background:var(--accent)"></i>Unique visitors</span></div>
-        <div class="chartwrap"><div id="chart" class="chart" role="img" aria-label="Traffic chart"></div><div id="tip" hidden></div></div>
+        <div class="legend"><span><i style="background:var(--views)"></i>Page views</span><span><i style="background:var(--accent)"></i>Unique visitors</span></div>
+        <div class="chartwrap"><div id="chart" class="chart" role="group" tabindex="0" aria-label="Traffic chart"></div><span class="ymax" id="ymax" aria-hidden="true"></span><div id="tip" hidden></div></div>
         <div class="xaxis" id="xaxis" aria-hidden="true"></div>
         <table class="sr-only" id="chartTable"><caption>Traffic data</caption><thead><tr><th>Period</th><th>Page views</th><th>Unique visitors</th></tr></thead><tbody></tbody></table>
       </div>
 
-      <div class="card" style="margin-bottom:16px">
-        <h2>Create a visitor link</h2>
+      <details class="card linkcard" id="linkCard" style="margin-bottom:16px">
+        <summary><h2>Create a visitor link</h2></summary>
         <div class="linkform">
           <label>Who is it for?<input id="lkName" placeholder="Sara Acme" maxlength="80" autocomplete="off"></label>
           <label>Page<input id="lkPath" placeholder="/" autocomplete="off"></label>
           <div class="linkout"><code id="lkOut" class="dim">Type a name to get a link</code><button id="lkCopy" class="primary" disabled>Copy</button></div>
           <p class="hint">Send this link instead of the plain one. When they open it, their visits show up under their name, and later visits from the same browser stay named.</p>
         </div>
-      </div>
+      </details>
 
       <div class="card" style="margin-bottom:16px">
         <h2>Named visitors</h2>
@@ -396,7 +412,7 @@ async function copyText(text) {
 document.addEventListener('click', async e => {
   const a = e.target.closest('[data-act]');
   if (!a) return;
-  if (a.dataset.act === 'make-link') { $('lkName').scrollIntoView({ block: 'center', behavior: 'smooth' }); $('lkName').focus({ preventScroll: true }); }
+  if (a.dataset.act === 'make-link') { $('linkCard').open = true; $('lkName').scrollIntoView({ block: 'center', behavior: 'smooth' }); $('lkName').focus({ preventScroll: true }); }
   else if (a.dataset.act === 'show-install') $('install').scrollIntoView({ block: 'center', behavior: 'smooth' });
   else if (a.dataset.act === 'copy-snippet') {
     await copyText(a.dataset.text);
@@ -423,6 +439,7 @@ function paintUpdated() {
 setInterval(paintUpdated, 10000);
 
 function showBanner(msg) {
+  document.querySelector('main').classList.toggle('failed', Boolean(msg) && !lastUpdated);
   $('banner').hidden = !msg;
   $('bannerMsg').textContent = msg;
 }
@@ -524,9 +541,9 @@ const ALL = '__all';
 const compact = n => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n));
 function paintSidebar() {
   const cur = $('site').value;
-  const items = sites.length > 1 ? [{ id: ALL, name: 'All sites', sub: `${sites.length} sites`, n: sites.reduce((a, s) => a + Number(s.events_30d), 0) }] : [];
-  sites.forEach(s => items.push({ id: s.id, name: s.name, sub: s.domain, n: Number(s.events_30d) }));
-  $('sideList').innerHTML = items.map(i => `<button type="button" class="sideitem${i.id === cur ? ' on' : ''}" data-id="${esc(i.id)}"${i.id === cur ? ' aria-current="page"' : ''}><span class="si-text"><b>${esc(i.name)}</b><small>${esc(i.sub)}</small></span><span class="si-n" title="Events in the last 30 days">${compact(i.n)}</span></button>`).join('');
+  const items = sites.length > 1 ? [{ id: ALL, name: 'All sites', sub: `${sites.length} sites`, n: sites.reduce((a, s) => a + Number(s.views_30d), 0) }] : [];
+  sites.forEach(s => items.push({ id: s.id, name: s.name, sub: s.domain, n: Number(s.views_30d) }));
+  $('sideList').innerHTML = items.map(i => `<button type="button" class="sideitem${i.id === cur ? ' on' : ''}" data-id="${esc(i.id)}"${i.id === cur ? ' aria-current="page"' : ''}><span class="si-text"><b>${esc(i.name)}</b><small>${esc(i.sub)}</small></span><span class="si-n" title="Page views in the last 30 days">${compact(i.n)}</span></button>`).join('');
 }
 // Rebuilds the dropdown (phones) and the sidebar (wide screens) from `sites`, keeping the current choice.
 function renderSiteList() {
@@ -678,7 +695,7 @@ async function loadView(seq) {
     $('setup').innerHTML = '<h2>Get started</h2><p>Add your first site with <b>+ Add site</b>, then paste the snippet it gives you into that site\'s HTML.</p>'; return; }
   $('setup').hidden = true;
   $('stBtn').hidden = id === ALL;
-  $('stBtn').textContent = settingsOpen ? '← Dashboard' : 'Settings';
+  $('stBtn').textContent = settingsOpen ? '← Dashboard' : '⚙ Site settings';
   if (id !== ALL && settingsOpen) { $('dash').hidden = true; $('overview').hidden = true; $('settings').hidden = false; return loadSettings(id, seq); }
   $('settings').hidden = true;
   if (id === ALL) { $('dash').hidden = true; $('overview').hidden = false; return loadOverview(seq); }
@@ -731,6 +748,7 @@ async function loadView(seq) {
 
 const fmtDate = t => new Date(t).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 const fmtTime = t => new Date(t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+const fmtDayOnly = t => new Date(t).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 const fmtFull = t => `${fmtDate(t)}, ${fmtTime(t)}`;
 const dur = ms => { const m = Math.round(ms / 60000); return m < 1 ? '<1 min' : m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
 let lastFocus = null;
@@ -889,7 +907,7 @@ function renderNamed() {
   $('nmCount').textContent = rows.length === all.length ? `${all.length} total` : `${rows.length} of ${all.length}`;
   $('nmSort').value = nm.key;
   if (!rows.length) { $('named').innerHTML = `<div class="empty">No names match “${esc(nm.q.trim())}”.</div>`; return; }
-  const th = SORTABLE.map(([k, label]) => `<th aria-sort="${nm.key === k ? (nm.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn" data-k="${k}">${label}${nm.key === k ? (nm.dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`);
+  const th = SORTABLE.map(([k, label]) => `<th aria-sort="${nm.key === k ? (nm.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn${nm.key === k ? ' on' : ''}" data-k="${k}"${k === 'actions' ? ' title="Custom events such as clicks, not page views"' : ''}>${label}${nm.key === k ? (nm.dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`);
   $('named').innerHTML = `<table class="rt"><thead><tr>${th.slice(0, 1).join('')}${th.slice(1).join('')}<th>Location</th><th>Device</th></tr></thead><tbody>${
     rows.map(n => `<tr><td class="pri"><button class="namebtn" data-name="${esc(n.name)}">${esc(n.name)}</button></td><td data-label="Visits">${n.visits}</td><td data-label="Actions">${n.actions}</td><td data-label="Last seen">${agoEl(n.last_seen)}</td><td data-label="Location">${esc(place(n))}</td><td data-label="Device">${esc(n.device)}</td></tr>`).join('')}</tbody></table>`;
 }
@@ -921,7 +939,7 @@ function renderRecent() {
   if (!all.length) { $('recent').innerHTML = '<div class="empty"><p>No activity yet. Once the snippet is on your site, visits show up here within a few seconds.</p><button data-act="show-install">Show the install snippet</button></div>'; $('rcCount').textContent = ''; return; }
   const rows = all.filter(r => (rc.who === 'all' || (rc.who === 'named') === !!r.name)
     && (rc.event === 'all' || r.event === rc.event) && (rc.country === 'all' || r.country === rc.country));
-  $('rcCount').textContent = `${rows.length} of the latest ${all.length}`;
+  $('rcCount').textContent = rows.length === all.length ? `${all.length} event${all.length === 1 ? '' : 's'}` : `${rows.length} of ${all.length}`;
   if (!rows.length) { $('recent').innerHTML = '<div class="empty">Nothing matches these filters.</div>'; return; }
   $('recent').innerHTML = `<table class="rt"><thead><tr><th>When</th><th>Who</th><th>Event</th><th>Page</th><th>Location</th><th>From</th></tr></thead><tbody>${
     rows.map(r => `<tr><td data-label="When">${agoEl(r.ts)}</td><td class="pri">${r.name ? `<button class="namebtn" data-name="${esc(r.name)}">${esc(r.name)}</button>` : 'Anonymous'}</td><td data-label="Event">${esc(r.event)}</td><td data-label="Page">${esc(r.path || '/')}</td><td data-label="Location">${esc(place(r))}</td><td data-label="From">${esc(r.referrer || 'Direct')}</td></tr>`).join('')}</tbody></table>`;
@@ -981,10 +999,11 @@ function renderChart(d) {
   const max = Math.max(1, ...rows.map(r => r.views));
   $('chart').innerHTML = rows.map((r, i) =>
     `<div class="col" data-i="${i}"><div class="b" style="height:${(r.views / max) * 100}%"><div class="u" style="height:${r.views ? (r.visitors / r.views) * 100 : 0}%"></div></div></div>`).join('');
-  $('xaxis').innerHTML = [0, Math.floor(n / 2), n - 1].map(i => `<span>${esc(bucketLabel(rows[i].t, hourly))}</span>`).join('');
+  $('xaxis').innerHTML = [...new Set([0, 0.25, 0.5, 0.75, 1].map(f => Math.round((n - 1) * f)))].map(i => `<span>${esc(bucketLabel(rows[i].t, hourly))}</span>`).join('');
   const peak = rows.reduce((a, r) => (r.views > a.views ? r : a), rows[0]);
   $('chart').setAttribute('aria-label', `Traffic chart: ${d.totals.views} page views and ${d.totals.visitors} unique visitors. Busiest ${hourly ? 'hour' : 'day'}: ${bucketLabel(peak.t, hourly, true)} with ${peak.views} views.`);
   $('chartTable').tBodies[0].innerHTML = rows.map(r => `<tr><td>${esc(bucketLabel(r.t, hourly, true))}</td><td>${r.views}</td><td>${r.visitors}</td></tr>`).join('');
+  $('ymax').innerHTML = `<b>${max}</b>`;
   chartRows = rows; chartHourly = hourly;
 }
 
@@ -1001,6 +1020,22 @@ function showTip(col) {
 $('chart').addEventListener('mouseover', e => { const c = e.target.closest('.col'); if (c) showTip(c); });
 $('chart').addEventListener('click', e => { const c = e.target.closest('.col'); if (c) showTip(c); });
 $('chart').addEventListener('mouseleave', () => { tip.hidden = true; });
+// Keyboard: focus the chart, then arrow keys step through the bars (Home/End jump, Escape hides the tooltip).
+let chartPos = -1;
+function stepChart(i) {
+  const cols = $('chart').querySelectorAll('.col');
+  if (!cols.length) return;
+  chartPos = Math.max(0, Math.min(cols.length - 1, i));
+  cols.forEach((c, k) => c.classList.toggle('on', k === chartPos));
+  showTip(cols[chartPos]);
+}
+$('chart').addEventListener('keydown', e => {
+  const n = $('chart').querySelectorAll('.col').length;
+  const keys = { ArrowLeft: chartPos - 1, ArrowRight: chartPos + 1, Home: 0, End: n - 1 };
+  if (e.key in keys) { e.preventDefault(); stepChart(chartPos < 0 && e.key === 'ArrowLeft' ? n - 1 : keys[e.key]); }
+  else if (e.key === 'Escape') { tip.hidden = true; }
+});
+$('chart').addEventListener('blur', () => { tip.hidden = true; chartPos = -1; $('chart').querySelectorAll('.col.on').forEach(c => c.classList.remove('on')); });
 
 // Spaces become hyphens so the link stays readable; t.js turns them back into spaces.
 function visitorLink() {
@@ -1053,8 +1088,8 @@ function renderVisitor(d) {
     <div class="chips">
       <div class="chip"><b>${d.visits}</b><span>Page views</span></div>
       <div class="chip"><b>${d.actions}</b><span>Actions</span></div>
-      <div class="chip"><b>${esc(fmtFull(d.first_seen))}</b><span>First seen</span></div>
-      <div class="chip"><b>${esc(fmtFull(d.last_seen))}</b><span>Last seen</span></div>
+      <div class="chip"><b>${esc(fmtDayOnly(d.first_seen))}</b><span>First seen · ${esc(fmtTime(d.first_seen))}</span></div>
+      <div class="chip"><b>${esc(fmtDayOnly(d.last_seen))}</b><span>Last seen · ${esc(fmtTime(d.last_seen))}</span></div>
       <div class="chip"><b>${esc(loc)}</b><span>Last location</span></div>
       <div class="chip"><b>${d.devices}</b><span>${d.devices === 1 ? 'Device' : 'Devices'} · ${esc(last.device)} / ${esc(last.browser)}</span></div>
     </div>

@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const rows = await sql`
       select s.id, s.name, s.domain, s.created_at,
-        count(e.id) filter (where e.ts > now() - interval '30 days') as events_30d
+        count(e.id) filter (where e.ts > now() - interval '30 days' and e.event = 'pageview') as views_30d
       from sites s left join events e on e.site_id = s.id
       group by s.id order by s.created_at`;
     return res.json(rows);
