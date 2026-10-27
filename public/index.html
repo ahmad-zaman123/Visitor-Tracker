@@ -26,6 +26,7 @@
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
   header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--card); }
   header h1 { font-size: 17px; margin: 0 auto 0 0; }
+  select { max-width: 100%; text-overflow: ellipsis; }
   select, input, button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
   button { cursor: pointer; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -91,7 +92,7 @@
     header { padding: 12px; gap: 8px; }
     header h1 { margin-right: auto; font-size: 16px; }
     header #addBtn, header #signOut { padding: 6px 8px; }
-    header #site { flex: 1 1 100%; order: 5; }
+    header #site { flex: 1 1 100%; order: 5; min-width: 0; width: 100%; max-width: 100%; text-overflow: ellipsis; }
     header #range { flex: 1 1 100%; order: 6; }
     header #range button { flex: 1; padding: 10px 0; }
     main { padding: 12px; }
@@ -106,6 +107,12 @@
     .rt td.pri { order: -1; grid-column: 1 / -1; font-weight: 600; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
     .rt td[data-label="Location"], .rt td[data-label="Page"] { grid-column: 1 / -1; }
     .rt td.pri::before { content: none; }
+  }
+  @media (max-width: 400px) {
+    header { gap: 6px; padding: 12px 10px; }
+    header h1 { font-size: 15px; white-space: nowrap; }
+    header #addBtn, header #signOut { padding: 6px 7px; font-size: 14px; }
+    header .theme-toggle { width: 34px; height: 34px; }
   }
   .body { display: block; }
   .sidebar { display: none; }
