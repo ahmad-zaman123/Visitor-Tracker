@@ -32,7 +32,7 @@
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button:disabled { opacity: .5; cursor: not-allowed; }
   main { width: 100%; max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; align-content: start; }
-  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: hidden; }
   .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 12px; }
   .stats { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -116,6 +116,14 @@
   .sortbtn:hover { color: var(--text); text-decoration: underline; }
   .sortbtn:not(.on)::after { content: ' ↕'; opacity: .4; }
   .rt .u { display: none; }
+  .sites-grid.list { grid-template-columns: 1fr; gap: 8px; }
+  .list .sitecard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 16px; align-items: center; }
+  .list .sc-head, .list .sc-dom { grid-column: 1; }
+  .list .sc-numrow { grid-column: 2; grid-row: 1 / span 2; flex-direction: column; align-items: flex-end; gap: 2px; margin: 0; }
+  .list .sc-num { font-size: 20px; }
+  .list .spark, .list .sc-row, .list .sc-extra { display: none; }
+  .list .sc-bottom { grid-column: 1 / -1; padding-top: 0; }
+  .list .sc-foot:empty { display: none; }
   #siteBtn { display: none; }
   header #menuBtn { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; font-size: 20px; line-height: 1; }
   header #addBtn, header #signOut, header .theme-toggle { display: none; }
@@ -145,7 +153,8 @@
   /* Phones: the title and site picker scroll away, the range buttons stay pinned. */
   @media (max-width: 640px) { header { position: sticky; top: var(--hdr-top, 0px); z-index: 20; } body.in-settings header { position: static; } }
   .showmore { display: block; margin: 10px auto 0; font-size: 13px; }
-  .tabs { display: none; min-width: 0; max-width: 100%; contain: inline-size; }
+  .tabs { display: none; min-width: 0; max-width: 100%; contain: inline-size; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
   @media (max-width: 640px) {
     header { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
     header h1 { margin: 0; font-size: 16px; order: 1; }
@@ -303,16 +312,45 @@
   .seg button { border: 0; border-radius: 0; background: transparent; padding: 5px 12px; font-size: 13px; }
   .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
   .ovnote { font-size: 12px; color: var(--muted); margin: -8px 0 12px; }
+  .info { border: 0; background: none; padding: 4px; margin: -4px 0 -4px -2px; min-height: 0; color: var(--muted); font-size: 13px; line-height: 1; cursor: help; }
+  .info:hover { color: var(--text); }
+  .ovtop { display: grid; gap: 16px; margin-bottom: 16px; }
+  @media (min-width: 900px) { .ovtop.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr); } }
+  .tiles { display: grid; gap: 12px; align-content: start; }
+  @media (max-width: 640px) { .tiles.two { grid-template-columns: 1fr 1fr; } }
+  .tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  button.tile { cursor: pointer; } button.tile:hover { border-color: var(--accent); }
+  .tile small { font-size: 12px; color: var(--muted); }
+  .tile b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rnrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line); }
+  .rnrow:first-child { border-top: 0; padding-top: 0; }
+  .rn-meta { grid-column: 1; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rn-when { grid-column: 2; grid-row: 1 / span 2; font-size: 12px; color: var(--muted); }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: color-mix(in srgb, var(--muted) 14%, transparent); color: var(--muted); }
+  .pill.up { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+  .pill.down { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+  .sc-numrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 8px; }
+  .sc-numrow .sc-num { margin-top: 0; }
+  .sc-bottom { margin-top: auto; padding-top: 6px; }
+  .sc-bottom .spark { margin: 4px 0; }
+  .sites-grid.tbl { display: block; }
+  .ovtable th, .ovtable td { padding: 10px 8px; }
+  .ovtable th.num, .ovtable td.num { text-align: right; }
+  .ovtable th button { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+  .ovtable th button:hover { color: var(--text); text-decoration: underline; }
+  .ovrow { cursor: pointer; }
+  .ovrow:hover td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .ovrow:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .ovrow td b { display: block; font-size: 14px; }
+  .ovrow td small { display: block; color: var(--muted); font-size: 12px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  .ovtable .share { height: 3px; border-radius: 2px; background: var(--line); margin-top: 4px; min-width: 60px; }
+  .ovtable .share i { display: block; height: 100%; border-radius: 2px; background: color-mix(in srgb, var(--accent) 60%, transparent); }
+  .spark.mini { width: 90px; height: 22px; margin: 0; }
+  .ovtable .live { color: var(--ok); }
+  .acctgrid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); }
+  .acctgrid .card { padding: 14px 16px; } .acctgrid h2 { margin-bottom: 6px; }
   .hilite { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); margin: 0 0 12px; }
   .hilite b { color: var(--text); font-weight: 600; }
-  .sites-grid.list { grid-template-columns: 1fr; gap: 8px; }
-  .list .sitecard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 16px; align-items: center; }
-  .list .sc-head { grid-column: 1; } .list .sc-dom { grid-column: 1; }
-  .list .sc-num { grid-column: 2; grid-row: 1; margin: 0; font-size: 20px; text-align: right; }
-  .list .sc-delta { grid-column: 2; grid-row: 2; text-align: right; }
-  .list .spark, .list .sc-row, .list .sc-extra { display: none; }
-  .list .sc-foot, .list .sc-copy { grid-column: 1 / -1; }
-  .list .sc-foot:empty { display: none; }
 
   .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 30; }
   .panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--card); border-left: 1px solid var(--line); z-index: 31; display: flex; flex-direction: column; box-shadow: -8px 0 24px rgba(0, 0, 0, .15); }
@@ -373,14 +411,14 @@
   .linkcard summary:hover::after { border-color: var(--accent); }
   .linkcard[open] summary::after { content: 'Hide ▴'; }
   .linkcard[open] summary { margin-bottom: 12px; }
-  .linkform { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  .linkform { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .linkform label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
   .linkform input { width: 100%; }
   .linkout { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; }
   .linkout code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font: 13px ui-monospace, monospace; }
   .linkout code.dim { color: var(--muted); }
   .hint { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; }
-  @media (max-width: 520px) { .linkform { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .linkform { grid-template-columns: minmax(0, 1fr); } .linkout { flex-wrap: wrap; } .linkout code { flex: 1 1 100%; } }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -444,27 +482,31 @@
       <div id="stCron" class="banner warnb" hidden style="margin-bottom:16px"><span>⚠ Automatic cleanup is switched off, so old visits are never deleted. Add a <code>CRON_SECRET</code> environment variable in Vercel and redeploy to turn it on.</span><button type="button" id="stCronX">Dismiss</button></div>
       <div class="card stats" style="margin-bottom:16px">
         <div class="stat"><b id="oViews">0</b><span>Page views</span><small id="dOViews"></small></div>
-        <div class="stat"><b id="oVisitors">0</b><span>Unique visitors</span><small id="dOVisitors"></small></div>
+        <div class="stat"><b id="oVisitors">0</b><span>Unique visitors <button type="button" id="ovInfo" class="info" aria-expanded="false" aria-controls="ovNote" aria-label="How visitors are counted" title="Visitor totals add up each site's visitors">ⓘ</button></span><small id="dOVisitors"></small></div>
         <div class="stat"><b id="oNamed">0</b><span>Named visitors</span><small id="dONamed"></small></div>
         <div class="stat"><b><span class="dot"></span><span id="oLive" style="font-size:inherit;color:inherit">0</span></b><span>Online now</span></div>
       </div>
-      <p class="ovnote">Visitor totals add up each site's visitors, so one person who visits two sites counts twice.</p>
-      <p class="hilite" id="ovHigh" hidden></p>
+      <p class="ovnote" id="ovNote" hidden>Visitor totals add up each site's visitors, so one person who visits two sites counts twice.</p>
+      <div class="ovtop" id="ovTop">
+        <div class="tiles" id="ovHigh" hidden></div>
+        <div class="card"><h2>Recently named visitors</h2><div id="ovRecent"></div></div>
+      </div>
       <div class="ovbar">
-        <label>Sort by <select id="ovSort"><option value="views">Most views</option><option value="recent">Most recent</option><option value="change">Biggest change</option><option value="name">Name</option></select></label>
+        <label id="ovSortWrap">Sort by <select id="ovSort"><option value="views">Most views</option><option value="recent">Most recent</option><option value="change">Biggest change</option><option value="name">Name</option></select></label>
         <span class="sp"></span>
         <span class="seg" role="group" aria-label="Layout"><button type="button" id="ovCards" aria-pressed="true">Cards</button><button type="button" id="ovList" aria-pressed="false">List</button></span>
       </div>
       <div class="sites-grid" id="siteGrid"></div>
-      <div class="card" style="margin-top:16px"><h2>Recently named visitors</h2><div class="scroll" id="ovRecent"></div></div>
       <div id="ovAccount" style="margin-top:16px">
-      <h3 class="sthead" id="stAccount">Account <small>applies to all sites</small></h3>
-        <div class="card">
-          <h2>Backup</h2>
-          <p style="margin:0 0 10px">Download a copy of every site and every event as one JSON file, so your data also lives outside the database.</p>
-          <div class="exports"><button type="button" data-export="backup">Download full backup (JSON)</button></div>
+        <h3 class="sthead" id="stAccount">Account <small>applies to all sites</small></h3>
+        <div class="acctgrid">
+          <div class="card">
+            <h2>Backup</h2>
+            <p style="margin:0 0 10px">Every site and event in one JSON file, kept outside the database.</p>
+            <div class="exports"><button type="button" data-export="backup">Download full backup</button></div>
+          </div>
+          <div class="card" id="bioCard" hidden><h2>Fingerprint / Face ID</h2><div id="bioBody"></div></div>
         </div>
-        <div class="card" id="bioCard" hidden><h2>Fingerprint / Face ID</h2><div id="bioBody"></div></div>
       </div>
     </div>
     <div id="settings" hidden>
@@ -1291,18 +1333,27 @@ $('stDelete').onclick = async () => {
   } catch (err) { dzMsg(err.message || 'Could not delete the site.'); }
 };
 
-let ovData = null, ovVs = '';
+let ovData = null, ovVs = '', ovFlip = false, ovAllRecent = false;
 const ovMode = () => lsRead('tk_ovview') || ((ovData && ovData.sites.length > 4 && matchMedia('(max-width:640px)').matches) ? 'list' : 'cards');
 const lowVol = (c, p) => c < 10 && p < 10;
-function ovDelta(x, vs) {
+// The change since the previous period, as a small coloured pill.
+function ovPill(x) {
   if (!x.last_seen || (!x.totals.views && !x.prev.views)) return '';
-  if (lowVol(x.totals.views, x.prev.views)) return `<span class="low">low volume</span>`;
-  return delta(x.totals.views, x.prev.views, vs);
+  const c = x.totals.views, p = x.prev.views, tip = `vs ${ovVs}`;
+  if (lowVol(c, p)) return `<span class="pill" title="Too few views to compare">low volume</span>`;
+  if (!p) return `<span class="pill up" title="${tip}">new</span>`;
+  const pc = Math.round(((c - p) / p) * 100);
+  if (pc === 0) return `<span class="pill" title="${tip}">no change</span>`;
+  return `<span class="pill ${pc > 0 ? 'up' : 'down'}" title="${tip}">${pc > 0 ? '▲' : '▼'} ${Math.abs(pc)}%</span>`;
 }
+const ovTable = () => ovMode() === 'list' && matchMedia('(min-width: 641px)').matches;
+matchMedia('(min-width: 641px)').addEventListener?.('change', () => renderCards());
+
 function renderCards() {
   const d = ovData; if (!d) return;
-  const mode = ovMode(), sort = $('ovSort').value;
+  const mode = ovMode(), table = ovTable(), sort = $('ovSort').value;
   $('ovCards').setAttribute('aria-pressed', mode === 'cards'); $('ovList').setAttribute('aria-pressed', mode === 'list');
+  $('ovSortWrap').hidden = table;
   const chg = x => (x.totals.views - x.prev.views) / Math.max(x.prev.views, 1);
   const cmp = {
     views: (p, q) => q.totals.views - p.totals.views,
@@ -1310,37 +1361,79 @@ function renderCards() {
     change: (p, q) => chg(q) - chg(p),
     name: (p, q) => p.name.localeCompare(q.name),
   }[sort];
-  const list = [...d.sites].sort((p, q) => (!p.last_seen - !q.last_seen) || cmp(p, q));
-  const grid = $('siteGrid'); grid.classList.toggle('list', mode === 'list');
-  grid.innerHTML = list.map(x => {
-    const never = !x.last_seen;
-    const age = never ? 0 : (Date.now() - new Date(x.last_seen)) / 864e5;
-    const stale = !never && age > 7;
+  // Sites with no visits stay at the bottom whichever way it is sorted.
+  const list = [...d.sites].sort((p, q) => (!p.last_seen - !q.last_seen) || (ovFlip ? -1 : 1) * cmp(p, q));
+  const total = d.sites.reduce((a, x) => a + x.totals.views, 0);
+  const share = x => (total ? Math.round((x.totals.views / total) * 100) : 0);
+  const shareT = x => (x.totals.views && share(x) < 1 ? '<1' : share(x));
+  const grid = $('siteGrid');
+  grid.classList.toggle('list', mode === 'list' && !table); grid.classList.toggle('tbl', table);
+  if (!list.length) { grid.innerHTML = '<div class="empty">No sites yet.</div>'; return; }
+  const sparkOf = (x, cls = '') => {
     const { rows } = fillBuckets(x.daily, d.days);
     const max = Math.max(1, ...rows.map(r => r.views));
-    const spark = never || stale || !x.totals.views ? '' : `<div class="spark" aria-hidden="true">${rows.map(r => `<i style="height:${(r.views / max) * 100}%"></i>`).join('')}</div>`;
-    const bits = [];
-    if (x.top_page) bits.push(`Top page: ${esc(x.top_page)}`);
-    if (x.top_source) bits.push(`Top source: ${esc(x.top_source)}`);
-    const acts = [x.downloads && `${x.downloads} download${x.downloads === 1 ? '' : 's'}`, x.contacts && `${x.contacts} email/phone click${x.contacts === 1 ? '' : 's'}`].filter(Boolean);
-    const extra = [bits.join(' · '), acts.join(', ')].filter(Boolean).map(t => `<div class="sc-extra" title="${t}">${t}</div>`).join('');
+    return `<div class="spark ${cls}" aria-hidden="true">${rows.map(r => `<i style="height:${(r.views / max) * 100}%"></i>`).join('')}</div>`;
+  };
+  const stale = x => x.last_seen && (Date.now() - new Date(x.last_seen)) / 864e5 > 7;
+  const snip = x => `<button type="button" class="sc-copy" data-act="copy-snippet" data-text="${esc(snippetFor(x.id))}">Copy snippet</button>`;
+
+  if (table) {
+    const th = (k, label, cls = '') => `<th class="${cls}" aria-sort="${sort === k ? (ovFlip === (k !== 'name') ? 'ascending' : 'descending') : 'none'}"><button type="button" data-ok="${k}">${label}${sort === k ? (ovFlip === (k !== 'name') ? ' ▲' : ' ▼') : ''}</button></th>`;
+    grid.innerHTML = `<div class="card" style="padding:4px 16px"><div class="scroll"><table class="ovtable"><thead><tr>${th('name', 'Site')}${th('views', 'Views', 'num')}${th('change', 'Change')}<th class="num">Visitors</th><th>Online</th>${th('recent', 'Last visit')}<th>Trend</th></tr></thead><tbody>${
+      list.map(x => {
+        const never = !x.last_seen;
+        return `<tr class="ovrow" role="link" tabindex="0" data-id="${esc(x.id)}">
+          <td><b title="${esc(x.name)}">${esc(x.name)}</b><small title="${esc(x.domain)}">${esc(x.domain)}</small></td>
+          <td class="num"><b>${x.totals.views}</b>${never ? '' : `<div class="share" title="${shareT(x)}% of all page views"><i style="width:${Math.max(share(x), x.totals.views ? 2 : 0)}%"></i></div>`}</td>
+          <td>${ovPill(x)}</td>
+          <td class="num">${never ? '' : x.totals.visitors}</td>
+          <td>${x.live ? `<span class="live">● ${x.live}</span>` : ''}</td>
+          <td>${never ? `No visits yet ${snip(x)}` : `<span${stale(x) ? ' style="color:#b45309"' : ''}>${agoEl(x.last_seen)}</span>`}</td>
+          <td>${never || stale(x) || !x.totals.views ? '' : sparkOf(x, 'mini')}</td></tr>`;
+      }).join('')}</tbody></table></div></div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(x => {
+    const never = !x.last_seen, st = stale(x);
+    const spark = never || st || !x.totals.views ? '' : sparkOf(x);
+    const acts = [x.downloads && `${x.downloads} download${x.downloads === 1 ? '' : 's'}`, x.contacts && `${x.contacts} contact click${x.contacts === 1 ? '' : 's'}`].filter(Boolean);
+    const extra = [x.top_page && `Top page ${x.top_page}`, x.top_source && `from ${x.top_source}`, ...acts].filter(Boolean).join(' · ');
+    const row = never ? 'No visits yet.' : `${x.totals.visitors} visitor${x.totals.visitors === 1 ? '' : 's'} · ${x.totals.named} named · ${shareT(x)}% of views`;
     return `<div class="sitecard${never ? ' idle' : ''}" role="button" tabindex="0" data-id="${esc(x.id)}">
       <div class="sc-head"><b title="${esc(x.name)}">${esc(x.name)}</b>${x.live ? `<span class="sc-live">● ${x.live} online</span>` : ''}</div>
       <div class="sc-dom" title="${esc(x.domain)}">${esc(x.domain)}</div>
-      <div class="sc-num">${x.totals.views} <span>views</span></div>
-      <div class="sc-delta">${ovDelta(x, ovVs)}</div>
-      <div class="sc-row">${never ? 'No visits yet.' : `${x.totals.visitors} visitor${x.totals.visitors === 1 ? '' : 's'} · ${x.totals.named} named`}</div>
-      ${extra}${spark}
-      <div class="sc-foot${stale ? ' stale' : ''}">${never ? '' : `Last visit ${agoEl(x.last_seen)}`}</div>
-      ${never ? `<button type="button" class="sc-copy" data-act="copy-snippet" data-text="${esc(snippetFor(x.id))}">Copy snippet</button>` : ''}
+      <div class="sc-numrow"><div class="sc-num">${x.totals.views} <span>views</span></div>${ovPill(x)}</div>
+      <div class="sc-row">${row}</div>
+      ${extra ? `<div class="sc-extra" title="${esc(extra)}">${esc(extra)}</div>` : ''}
+      <div class="sc-bottom">${spark}<div class="sc-foot${st ? ' stale' : ''}">${never ? '' : `Last visit ${agoEl(x.last_seen)}`}</div>${never ? snip(x) : ''}</div>
     </div>`;
-  }).join('') || '<div class="empty">No sites yet.</div>';
+  }).join('');
 }
 $('stCronX').onclick = () => { $('stCron').hidden = true; try { sessionStorage.setItem('tk_cron_x', '1'); } catch (e) {} };
+$('ovInfo').onclick = () => { const open = $('ovNote').hidden; $('ovNote').hidden = !open; $('ovInfo').setAttribute('aria-expanded', open); };
 $('ovSort').value = lsRead('tk_ovsort') || 'views';
-$('ovSort').onchange = () => { try { localStorage.setItem('tk_ovsort', $('ovSort').value); } catch (e) {} renderCards(); };
+const saveSort = () => { try { localStorage.setItem('tk_ovsort', $('ovSort').value); } catch (e) {} };
+$('ovSort').onchange = () => { ovFlip = false; saveSort(); renderCards(); };
 $('ovCards').onclick = () => { try { localStorage.setItem('tk_ovview', 'cards'); } catch (e) {} renderCards(); };
 $('ovList').onclick = () => { try { localStorage.setItem('tk_ovview', 'list'); } catch (e) {} renderCards(); };
+
+function renderOvTop(d) {
+  const siteName = Object.fromEntries(d.sites.map(x => [x.id, x.name]));
+  const tiles = [];
+  const dl = d.sites.filter(x => x.downloads).sort((p, q) => q.downloads - p.downloads)[0];
+  if (dl) tiles.push(`<button type="button" class="tile" data-go="${esc(dl.id)}"><small>Most downloaded</small><b title="${esc(dl.name)}">${esc(dl.name)}</b><small>${dl.downloads} download${dl.downloads === 1 ? '' : 's'}</small></button>`);
+  if (d.top_campaign) tiles.push(`<div class="tile"><small>Top campaign</small><b title="${esc(d.top_campaign.label)}">${esc(d.top_campaign.label)}</b><small>${d.top_campaign.n} visitor${d.top_campaign.n === 1 ? '' : 's'}</small></div>`);
+  $('ovHigh').innerHTML = tiles.join('');
+  $('ovHigh').hidden = !tiles.length;
+  $('ovHigh').classList.toggle('two', tiles.length === 2);
+  $('ovTop').classList.toggle('two', tiles.length > 0);
+  const rows = ovAllRecent ? d.recent : d.recent.slice(0, 5);
+  $('ovRecent').innerHTML = d.recent.length
+    ? rows.map(r => `<div class="rnrow"><button class="ovname" data-site="${esc(r.site_id)}" data-name="${esc(r.name)}">${esc(r.name)}</button><span class="rn-meta">${esc(siteName[r.site_id] || r.site_id)} · ${r.visits} visit${r.visits === 1 ? '' : 's'} · ${esc(place(r))}</span><span class="rn-when">${agoEl(r.last_seen)}</span></div>`).join('')
+      + (rows.length < d.recent.length ? `<button type="button" class="showmore" id="ovMoreRecent">Show all ${d.recent.length}</button>` : '')
+    : '<div class="empty">Nobody named in this range. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
+}
 
 async function loadOverview(seq) {
   const d = await api(`/api/overview?days=${days}`);
@@ -1359,29 +1452,27 @@ async function loadOverview(seq) {
   ovData = d; ovVs = vs;
   if (!lsRead('tk_cron_x') && !sessionStorage.getItem('tk_cron_x')) api('/api/settings').then(c => { if (seq === loadSeq) $('stCron').hidden = c.cronConfigured; }).catch(() => {});
   renderBioCard();
-  const hi = [];
-  const dl = d.sites.filter(x => x.downloads).sort((p, q) => q.downloads - p.downloads)[0];
-  if (dl) hi.push(`Most downloaded: <b>${esc(dl.name)}</b> (${dl.downloads})`);
-  if (d.top_campaign) hi.push(`Top campaign: <b>${esc(d.top_campaign.label)}</b> (${d.top_campaign.n} visitor${d.top_campaign.n === 1 ? '' : 's'})`);
-  $('ovHigh').innerHTML = hi.map(h => `<span>${h}</span>`).join('');
-  $('ovHigh').hidden = !hi.length;
+  renderOvTop(d);
   renderCards();
-
-  const siteName = Object.fromEntries(d.sites.map(x => [x.id, x.name]));
-  $('ovRecent').innerHTML = d.recent.length
-    ? `<table class="rt"><thead><tr><th>Name</th><th>Site</th><th>Visits</th><th>Location</th><th>Last seen</th></tr></thead><tbody>${
-        d.recent.map(r => `<tr><td class="pri"><button class="ovname" data-site="${esc(r.site_id)}" data-name="${esc(r.name)}">${esc(r.name)}</button></td><td data-label="Site">${esc(siteName[r.site_id] || r.site_id)}</td><td data-label="Visits">${r.visits}</td><td data-label="Location">${esc(place(r))}</td><td data-label="Last seen">${agoEl(r.last_seen)}</td></tr>`).join('')}</tbody></table>`
-    : '<div class="empty">Nobody named in this range. Send someone a link like <code>?ref=Sara-Acme</code>.</div>';
 }
 $('overview').addEventListener('click', e => {
   const n = e.target.closest('.ovname');
   if (n) return goSite(n.dataset.site, n.dataset.name);
+  if (e.target.closest('#ovMoreRecent')) { ovAllRecent = true; return renderOvTop(ovData); }
+  const t = e.target.closest('[data-go]');
+  if (t) return goSite(t.dataset.go);
+  const h = e.target.closest('[data-ok]');
+  if (h) {
+    const k = h.dataset.ok;
+    ovFlip = $('ovSort').value === k ? !ovFlip : false;
+    $('ovSort').value = k; saveSort(); return renderCards();
+  }
   if (e.target.closest('.sc-copy')) return;
-  const c = e.target.closest('.sitecard');
+  const c = e.target.closest('.sitecard, .ovrow');
   if (c) goSite(c.dataset.id);
 });
 $('overview').addEventListener('keydown', e => {
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('sitecard')) { e.preventDefault(); goSite(e.target.dataset.id); }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.sitecard, .ovrow')) { e.preventDefault(); goSite(e.target.dataset.id); }
 });
 
 // ---- Named visitors: search + sort, and recent activity: filters. All client-side on the loaded data.
@@ -1397,6 +1488,7 @@ function renderNamed() {
   if (!all.length) {
     $('named').innerHTML = '<div class="empty"><p>Nobody has been named yet. Send someone a link with their name in it, like <code>?ref=Sara-Acme</code>, and their visits show up here.</p><button data-act="make-link">Create a visitor link</button></div>';
     $('nmCount').textContent = '';
+    $('nmSearch').hidden = true; $('nmSort').hidden = true;
     return;
   }
   const q = nm.q.trim().toLowerCase();
@@ -1404,6 +1496,7 @@ function renderNamed() {
   rows.sort((a, b) => nm.dir * (nm.key === 'name' ? a.name.localeCompare(b.name)
     : nm.key === 'last_seen' ? new Date(a.last_seen) - new Date(b.last_seen) : a[nm.key] - b[nm.key]));
   $('nmSearch').hidden = all.length <= 8 && !nm.q;
+  $('nmSort').hidden = false;
   $('nmCount').textContent = rows.length === all.length ? `${all.length} total` : `${rows.length} of ${all.length}`;
   $('nmSort').value = nm.key;
   if (!rows.length) { $('named').innerHTML = `<div class="empty">No names match “${esc(nm.q.trim())}”.</div>`; return; }
