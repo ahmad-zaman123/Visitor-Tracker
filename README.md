@@ -1,76 +1,252 @@
-# Visitor Tracker
+<h1 align="center">📡 Visitor Tracker</h1>
 
-A small self-hosted tracker with a dashboard. One deployment tracks any number of sites.
-Free to run on Vercel Hobby and Neon.
+<p align="center">
+  <b>Know who is looking at your work.</b><br/>
+  A small self-hosted tracker with a dashboard. One deployment watches all your sites, and a link like <code>?ref=Sara-Acme</code> tells you when a named person opens it.
+</p>
 
-## What it records
+<p align="center">
+  <a href="https://github.com/ahmad-zaman123/visitor-tracker/actions/workflows/test.yml"><img src="https://github.com/ahmad-zaman123/visitor-tracker/actions/workflows/test.yml/badge.svg" alt="tests" /></a>
+  <img src="https://img.shields.io/badge/Vercel-Functions%20%2B%20Cron-000?logo=vercel&logoColor=white&style=flat-square" alt="Vercel" />
+  <img src="https://img.shields.io/badge/Postgres-Neon-00E599?logo=postgresql&logoColor=white&style=flat-square" alt="Neon Postgres" />
+  <img src="https://img.shields.io/badge/JavaScript-ESM-F7DF1E?logo=javascript&logoColor=black&style=flat-square" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/WebAuthn-passkeys-4F46E5?style=flat-square" alt="WebAuthn passkeys" />
+  <img src="https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white&style=flat-square" alt="PWA" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT license" /></a>
+</p>
 
-Per event: time, anonymous visitor id (random, stored in the visitor's browser), page, referrer,
-country and city (from Vercel's edge headers), device, browser, and a salted hash of the IP.
-Raw IPs are never stored. A visitor has a name only if they arrived through a `?ref=Name` link or
-your page calls `tracker.identify('Name')`.
+<p align="center">
+  <a href="#-quick-start">Quick start</a> ·
+  <a href="#-how-it-works">How it works</a> ·
+  <a href="#-features">Features</a> ·
+  <a href="#-api">API</a> ·
+  <a href="#-tests">Tests</a> ·
+  <a href="#%EF%B8%8F-deployment">Deployment</a>
+</p>
 
-## Setup
+<p align="center">
+  <img src="docs/screenshots/overview.png" alt="Visitor Tracker overview of all sites with totals, recent named visitors and a card per site" width="860" />
+</p>
 
-1. Push this folder to its own GitHub repo and import it in Vercel.
-2. In the Vercel project: **Storage → Create → Neon (Postgres)**. This sets `DATABASE_URL`.
-3. Add environment variables: `ADMIN_PASSWORD` (login for the dashboard) and `HASH_SALT` (any long random string).
-4. Deploy, open the project URL, sign in, click **+ Add site**.
-5. Paste the snippet it shows into your site. Tables are created automatically on first use.
+---
 
-## Data retention
+## 🧭 What is Visitor Tracker?
 
-A daily Vercel Cron job (`vercel.json`, 03:00 UTC) calls `/api/cleanup`, which deletes events older than
-180 days. Set `RETENTION_DAYS` to change it (minimum 30; keep at least 60 so the 30-day comparison works,
-and 180 for the 90-day comparison). Add a `CRON_SECRET` environment variable in Vercel (any long random
-string): Vercel sends it with each cron call, and the endpoint refuses requests without it. You can also run
-a cleanup by hand while signed in, or with `curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cleanup`.
+A privacy-minded analytics tool for a handful of personal sites: a portfolio, a few side projects, a landing page. You paste one `<script>` tag into each site and watch the traffic from a single dashboard. It records page views, referrers, country and city, device and browser, and it can put a **name** to a visit when you share a personalised link, which is handy when you send your portfolio to a recruiter and want to know whether they opened it.
 
-## Using it
+It runs free on **Vercel Hobby** and **Neon**, with no servers to look after and no third party seeing your visitors.
 
-- Named link: `https://yoursite.com/?ref=Sara-Acme` shows as "Sara Acme" and is remembered on later visits.
-- In code: `tracker.identify('Sara')`, `tracker.track('clicked-resume')`.
-- Visitors with Do Not Track on, and bots, are ignored.
-- Hits from a domain other than the one registered for the site id are dropped.
+| 📥 Collect | 📊 Watch | 🔔 Know who |
+|---|---|---|
+| One snippet per site. Page views, downloads and email, phone and outbound clicks are logged on their own | Totals against the previous period, traffic by day, top pages, referrers, countries, devices and campaigns | `?ref=Sara-Acme` names the visitor, and their whole timeline is one tap away |
 
-## Local dev
+## 🚀 Quick start
 
-`npm i && npx vercel dev` (needs `vercel link` and `vercel env pull` first).
+**Prerequisites:** a [Vercel](https://vercel.com) account and a GitHub account. Both free tiers are enough.
 
-## Sign-in
+1. Fork or push this repo to GitHub and import it in Vercel.
+2. In the Vercel project go to **Storage → Create → Neon (Postgres)**. This sets `DATABASE_URL` for you.
+3. Add the environment variables below, then deploy.
+4. Open the project URL, sign in, and click **+ Add site**.
+5. Paste the snippet it shows into your site's `<head>`:
 
-The dashboard password is checked once by `/api/login`, which hands back a signed session that lasts 12 hours.
-The password itself is never stored in the browser. After 5 wrong guesses from one address (or 30 from anywhere)
-within 15 minutes, sign-in is paused for a while. Changing `ADMIN_PASSWORD` signs everyone out.
+```html
+<script defer src="https://YOUR-TRACKER.vercel.app/t.js" data-site="SITE_ID"></script>
+```
 
-## Automatic click events
+The tables are created automatically on first use, so there is no migration step.
 
-`t.js` logs these on its own, with no extra code: `clicked-email` (mailto links), `clicked-phone` (tel links),
-`downloaded-<file>` (pdf, docx, xlsx, zip and similar, or any link with a `download` attribute) and
-`outbound-<site>` (links to other websites). They show up under Custom events and in each visitor's timeline.
-Skip one link with `data-track="off"`, or turn it all off with `data-auto="off"` on the script tag.
+<details>
+<summary><b>🔧 Environment variables</b></summary>
+<br/>
 
-## Exports and backup
+| Key | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | **yes** | Set by the Neon integration. |
+| `ADMIN_PASSWORD` | **yes** | The dashboard password. Changing it signs everyone out. |
+| `HASH_SALT` | **yes** | Any long random string. Salts the IP hash and signs sessions. |
+| `CRON_SECRET` | recommended | Any long random string. Vercel sends it with the daily cleanup call, and the endpoint refuses requests without it. Without it, old visits are never deleted and the dashboard warns you. |
+| `RETENTION_DAYS` | no | How long to keep events. Default 180, minimum 30. |
 
-Site settings has a CSV download of one site's events and a JSON backup of every site and event.
+</details>
 
-## Campaigns
+<details>
+<summary><b>📜 Scripts</b></summary>
+<br/>
 
-Add `utm_source`, `utm_medium` and/or `utm_campaign` to a link (for example `?utm_source=linkedin&utm_campaign=job-oct`)
-and the visit, plus any downloads and clicks that follow in the same tab, are credited to it. The Campaigns card shows
-visitors per tag and how many of them downloaded a file or clicked email or phone. The visitor link builder has
-"Shared on" and "Campaign" fields that add the tags for you.
+| Command | What it does |
+|---|---|
+| `npm test` | Unit tests and API tests against an in-memory Postgres |
+| `npx vercel dev` | Run locally (needs `vercel link` and `vercel env pull` first) |
 
-## Install as an app
+</details>
 
-The dashboard is installable: in Chrome or Edge use the install icon in the address bar, on Android "Add to Home screen",
-on iPhone Share then "Add to Home Screen". It opens in its own window, and the page itself loads even without a
-connection (data needs one, and is never cached).
+### Name a visitor
 
-### Fingerprint / Face ID
+```text
+https://yoursite.com/?ref=Sara-Acme          →  shows up as "Sara Acme", and is remembered on later visits
+https://yoursite.com/?utm_source=linkedin&utm_campaign=job-oct   →  credited to that campaign
+```
 
-After signing in with the password, the dashboard offers to turn on fingerprint or Face ID for that device (it uses
-passkeys, so the fingerprint never leaves the phone). Next time, the sign-in page opens the unlock prompt by itself, and
-the password stays available as a fallback. Devices are listed, and can be removed, under a site's Settings. The same
-wrong-attempt limit applies. Changing `ADMIN_PASSWORD` signs sessions out but does not remove registered devices, so
-remove them in Settings if you want them gone.
+```js
+tracker.identify('Sara');          // name someone from your own code
+tracker.track('clicked-resume');   // log a custom event
+```
+
+## 🧩 How it works
+
+```
+ your site ── t.js ──▶ POST /api/collect ──▶ checks origin ──▶ drops bots ──▶ hashes the IP ──▶ Neon Postgres
+                                                                                                      │
+ you ── password or fingerprint ──▶ signed session (12 h, or 30 days) ──▶ /api/stats · /api/overview ◀┘
+                                                                          dashboard (installable PWA)
+```
+
+| Step | What happens |
+|---|---|
+| **Snippet** | `t.js` stores a random visitor id in the browser, reads `?ref=` and the UTM tags, and sends the event with `sendBeacon`. It does nothing when Do Not Track is on. |
+| **Collect** | `/api/collect` ignores hits from a domain other than the one registered for that site id, ignores bots and link previews, and stores a salted hash of the IP instead of the address. |
+| **Query** | Every dashboard view is one or two round trips: `/api/overview` groups all sites in a single set of queries, and `/api/stats` runs its queries in parallel. |
+| **Retention** | A daily Vercel Cron job calls `/api/cleanup`, which deletes events older than the retention window and old sign-in attempts. |
+
+## ✨ Features
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🏠 One dashboard for every site
+
+An overview with totals against the previous period, the most downloaded site, the top campaign and recently named visitors, then a card per site with a sparkline. Sort by most views, most recent, biggest change or name, and switch between cards and a table.
+
+### 👤 Named visitors
+
+A personalised link puts a name on a visit. Tap the name to see their whole timeline: pages, downloads, clicks, location, device and the campaign they came from.
+
+### 🖱️ Automatic click events
+
+`clicked-email`, `clicked-phone`, `downloaded-<file>` and `outbound-<site>` are logged with no extra code. Skip a link with `data-track="off"`.
+
+### 📣 Campaigns
+
+Add `utm_source`, `utm_medium` or `utm_campaign` to a link. The visit, and the downloads and clicks that follow in the same tab, are credited to it.
+
+</td>
+<td width="50%" valign="top">
+
+### 🔒 Private by design
+
+No raw IPs are stored. Visitor ids are random and live in the visitor's own browser. Do Not Track is honoured, and the dashboard is `noindex`.
+
+### 🔑 Sign in with a fingerprint
+
+After the first password sign-in the dashboard offers to enable fingerprint or Face ID on that device, using **passkeys (WebAuthn)**, so the biometric never leaves the phone. Five wrong guesses from one address pause sign-in.
+
+### 📱 Installable and phone friendly
+
+Add it to your home screen and it opens in its own window. It has a bottom-sheet site switcher, pull to refresh, offline fallback to the last data it saw, and a back button that behaves.
+
+### 🌗 Light and dark
+
+Follows the system theme, with a manual toggle.
+
+### 💾 Your data is yours
+
+CSV export of one site's events, and a one-file JSON backup of everything.
+
+</td>
+</tr>
+</table>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="A single site with traffic by day and named visitors" width="860" />
+</p>
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/dashboard-dark.png" alt="Dark mode dashboard" /></td>
+<td width="25%"><img src="docs/screenshots/mobile.png" alt="Phone layout" /></td>
+<td width="25%"><img src="docs/screenshots/mobile-dark.png" alt="Phone layout in dark mode" /></td>
+</tr>
+</table>
+
+## 🔌 API
+
+The tracker endpoint is public. Everything else needs the signed session returned by `/api/login`, sent as `Authorization: Bearer <token>`.
+
+| Area | Endpoints |
+|---|---|
+| **Collect** | `POST /api/collect` (public, CORS open, origin-checked) |
+| **Sign in** | `POST /api/login`, `POST /api/passkey?action=auth-options` and `auth-verify` |
+| **Devices** | `GET`, `DELETE /api/passkey`, `POST /api/passkey?action=reg-options` and `reg-verify` |
+| **Sites** | `GET`, `POST`, `PATCH`, `DELETE /api/sites` |
+| **Stats** | `GET /api/overview?days=30`, `GET /api/stats?site=<id>&days=30`, `GET /api/visitor?site=<id>&name=<name>` |
+| **Data** | `GET /api/export?kind=csv&site=<id>`, `GET /api/export?kind=backup`, `GET /api/settings` |
+| **Maintenance** | `GET /api/cleanup` (Vercel Cron, or a signed-in session) |
+
+## 🧪 Tests
+
+```bash
+npm install
+npm test
+```
+
+20 tests run on Node's built-in runner. The API tests call the real handlers against an **in-memory Postgres** ([PGlite](https://pglite.dev)), swapped in for the Neon driver with a module resolve hook, so no database or network is needed.
+
+| Covers | Examples |
+|---|---|
+| **Sign-in and sessions** | wrong password refused, five wrong guesses lock an address, tampered or expired tokens rejected, a changed password signs everyone out |
+| **Collect** | IP stored only as a hash, bots dropped, unknown sites and foreign origins ignored, `sendBeacon` text bodies and subdomains accepted |
+| **Dashboard queries** | totals, named visitors, campaigns, top page and source per site |
+| **Retention** | cleanup removes only events past the window, and deleting a site removes its events |
+| **Helpers** | user-agent parsing, domain cleaning, retention floor, constant-time comparisons |
+
+CI runs the same suite on every push and pull request.
+
+## 🛠️ Tech stack
+
+| Layer | Tech |
+|---|---|
+| **Backend** | Vercel Functions (Node, ESM), Vercel Cron |
+| **Database** | Postgres on Neon, via `@neondatabase/serverless` |
+| **Auth** | HMAC-signed sessions, WebAuthn passkeys (`@simplewebauthn/server`) |
+| **Frontend** | One dependency-free HTML file: vanilla JS and CSS, SVG charts, a service worker and a web manifest |
+| **Tests** | `node:test` and PGlite |
+| **Deployment** | Vercel + Neon, both on free tiers |
+
+## 🗂️ Project structure
+
+```
+visitor-tracker/
+├── api/
+│   ├── collect.js      public tracker endpoint
+│   ├── login.js        password sign-in with rate limiting
+│   ├── passkey.js      fingerprint / Face ID sign-in and device list
+│   ├── sites.js        add, rename, delete sites
+│   ├── overview.js     every site in one set of queries
+│   ├── stats.js        one site: totals, charts, breakdowns
+│   ├── visitor.js      one named visitor's timeline
+│   ├── export.js       CSV and JSON backup
+│   ├── settings.js     retention and cleanup status
+│   ├── cleanup.js      daily retention job
+│   └── _lib.js         database, sessions, hashing, user-agent parsing
+├── public/
+│   ├── index.html      the dashboard
+│   ├── t.js            the tracker snippet
+│   ├── sw.js           offline app shell
+│   └── manifest.webmanifest, icons
+├── tests/              unit and API tests
+├── schema.sql          the tables, for reference
+└── vercel.json         headers and the cron schedule
+```
+
+## ☁️ Deployment
+
+- **Vercel** serves the dashboard from `public/` and runs `api/` as functions. `vercel.json` sets the cache headers and the daily cron at 03:00 UTC.
+- **Neon** holds the data. The tables are created on first use.
+- **Install as an app:** in Chrome or Edge use the install icon in the address bar, on Android choose "Add to Home screen", on iPhone use Share then "Add to Home Screen".
+- **Backups:** the Account section of the dashboard downloads one JSON file with every site and event, and reminds you when it has been a while.
+
+## 📄 License
+
+[MIT](LICENSE) © 2026 Ahmad Zaman
