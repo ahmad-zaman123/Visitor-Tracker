@@ -398,6 +398,8 @@
   .pwwrap input[aria-invalid="true"] { border-color: var(--danger); }
   .pwwrap input[aria-invalid="true"]:focus-visible { outline-color: var(--danger); }
   .forgot { font-size: 13px; color: var(--muted); }
+  .ownernote { font-size: 12.5px; line-height: 1.45; color: var(--muted); margin: 14px 0 6px; }
+  .ownernote a { color: var(--accent); }
   #demoBtn { width: 100%; margin-top: 10px; }
   .demobar { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 8px 16px; font-size: 13px; background: color-mix(in srgb, var(--accent) 12%, var(--card)); border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); text-align: center; }
   .demobar button { padding: 3px 10px; font-size: 13px; }

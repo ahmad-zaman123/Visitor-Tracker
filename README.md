@@ -103,6 +103,10 @@ tracker.identify('Sara');          // name someone from your own code
 tracker.track('clicked-resume');   // log a custom event
 ```
 
+## 👤 One owner, no sign-up
+
+Each deployment belongs to one person: a single admin password (or fingerprint) opens it, and there are no user accounts or registration page. That keeps it simple and keeps visitor data in your own database. To see it without deploying, use the [live demo](#-demo-mode). To run your own, follow the [quick start](#-quick-start).
+
 ## 🎮 Demo mode
 
 **[Try it live →](https://visitor-tracker-app.vercel.app)** and click **Try the demo** on the sign-in page.

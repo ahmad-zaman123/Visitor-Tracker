@@ -1,6 +1,6 @@
 // Keeps the dashboard page, its stylesheet and script, and the icons available offline. Data (/api) is never cached,
 // and the page is fetched fresh whenever there is a connection, so a new deploy shows up on the next open.
-const CACHE = 'tk-shell-v5';
+const CACHE = 'tk-shell-v6';
 const SHELL = ['/', '/styles.css', '/app.js', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/icon.svg'];
 
 self.addEventListener('install', e => {
