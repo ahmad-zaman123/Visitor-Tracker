@@ -7,12 +7,18 @@
 
 <p align="center">
   <a href="https://github.com/ahmad-zaman123/visitor-tracker/actions/workflows/test.yml"><img src="https://github.com/ahmad-zaman123/visitor-tracker/actions/workflows/test.yml/badge.svg" alt="tests" /></a>
+  <a href="https://visitor-tracker-app.vercel.app"><img src="https://img.shields.io/badge/live-visitor--tracker--app.vercel.app-000?logo=vercel&logoColor=white&style=flat-square" alt="Live site" /></a>
   <img src="https://img.shields.io/badge/Vercel-Functions%20%2B%20Cron-000?logo=vercel&logoColor=white&style=flat-square" alt="Vercel" />
   <img src="https://img.shields.io/badge/Postgres-Neon-00E599?logo=postgresql&logoColor=white&style=flat-square" alt="Neon Postgres" />
   <img src="https://img.shields.io/badge/JavaScript-ESM-F7DF1E?logo=javascript&logoColor=black&style=flat-square" alt="JavaScript" />
   <img src="https://img.shields.io/badge/WebAuthn-passkeys-4F46E5?style=flat-square" alt="WebAuthn passkeys" />
   <img src="https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white&style=flat-square" alt="PWA" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT license" /></a>
+</p>
+
+<p align="center">
+  <a href="https://visitor-tracker-app.vercel.app"><b>Live → visitor-tracker-app.vercel.app</b></a><br/>
+  <sub>This is my own instance, so it asks for a password. Deploy your own in a few minutes with the steps below.</sub>
 </p>
 
 <p align="center">
@@ -25,7 +31,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/overview.png" alt="Visitor Tracker overview of all sites with totals, recent named visitors and a card per site" width="860" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/overview-dark.png" />
+    <img src="docs/screenshots/overview.png" alt="Visitor Tracker overview of all sites with totals, recent named visitors and a card per site" width="860" />
+  </picture>
 </p>
 
 ---
@@ -159,16 +168,18 @@ CSV export of one site's events, and a one-file JSON backup of everything.
 </table>
 
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="A single site with traffic by day and named visitors" width="860" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png" />
+    <img src="docs/screenshots/dashboard.png" alt="A single site with traffic by day and named visitors" width="860" />
+  </picture>
 </p>
 
-<table>
-<tr>
-<td width="50%"><img src="docs/screenshots/dashboard-dark.png" alt="Dark mode dashboard" /></td>
-<td width="25%"><img src="docs/screenshots/mobile.png" alt="Phone layout" /></td>
-<td width="25%"><img src="docs/screenshots/mobile-dark.png" alt="Phone layout in dark mode" /></td>
-</tr>
-</table>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/mobile-dark.png" />
+    <img src="docs/screenshots/mobile.png" alt="Phone layout" width="300" />
+  </picture>
+</p>
 
 ## 🔌 API
 
