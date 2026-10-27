@@ -202,8 +202,11 @@
   dialog label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
   dialog label small { font-size: 12px; }
   dialog input { width: 100%; color: var(--text); }
-  .bio { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; font-weight: 600; color: var(--accent); border-color: var(--accent); }
-  .or { margin: 0; text-align: center; color: var(--muted); font-size: 13px; }
+  .biowrap { display: grid; justify-items: center; gap: 6px; margin-top: 4px; }
+  .biowrap span { font-size: 12px; color: var(--muted); }
+  .bio { display: grid; place-items: center; width: 56px; height: 56px; padding: 0; border-radius: 50%; color: var(--accent); border: 1.5px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
+  .bio:hover { background: color-mix(in srgb, var(--accent) 16%, var(--card)); }
+  .bio:disabled { opacity: .6; }
   .banner.info { background: color-mix(in srgb, var(--accent) 10%, var(--card)); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
   .banner .btns { display: flex; gap: 8px; flex: none; }
   .biorow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
@@ -247,14 +250,16 @@
     <h1>Visitor Tracker</h1>
     <p class="sub">Sign in to see who's visiting your sites.</p>
     <p id="loginNote" class="note ok" role="status" hidden></p>
-    <button type="button" class="bio" id="bioBtn" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 11a3 3 0 0 0-3 3c0 2.5-.5 4-1.5 5.5M12 7a7 7 0 0 0-7 7c0 1.5-.2 3-.7 4M12 3a11 11 0 0 1 11 11c0 2-.3 3.5-.8 5M15 14c0 3-.7 5-2 7M9 3.5A11 11 0 0 0 1 14"/></svg>Unlock with fingerprint / Face ID</button>
-    <p class="or" id="bioOr" hidden>or use your password</p>
     <label class="pwfield">Password
       <span class="pwwrap"><input id="pw" type="password" autocomplete="current-password" required aria-describedby="loginErr capsNote"><button type="button" id="pwToggle" aria-label="Show password" aria-pressed="false">Show</button></span>
     </label>
     <p id="loginErr" class="err" role="alert" hidden></p>
     <p id="capsNote" class="note" hidden>Caps Lock is on.</p>
     <button class="primary" id="loginBtn">Sign in</button>
+    <div class="biowrap" id="bioWrap" hidden>
+      <button type="button" class="bio" id="bioBtn" aria-label="Unlock with fingerprint or Face ID" title="Unlock with fingerprint or Face ID"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 11a3 3 0 0 0-3 3c0 2.5-.5 4-1.5 5.5M12 7a7 7 0 0 0-7 7c0 1.5-.2 3-.7 4M12 3a11 11 0 0 1 11 11c0 2-.3 3.5-.8 5M15 14c0 3-.7 5-2 7M9 3.5A11 11 0 0 0 1 14"/></svg></button>
+      <span aria-hidden="true">Use fingerprint</span>
+    </div>
     <details class="forgot"><summary>Forgot the password?</summary><p>It's the <code>ADMIN_PASSWORD</code> setting in your Vercel project. Changing it there signs every device out.</p></details>
   </div>
 </form>
@@ -1308,7 +1313,7 @@ async function signInWithBio() {
 // Show the unlock button only on a device that has been set up, and offer it once automatically.
 function paintBio() {
   const show = hasBio && bioReady && Boolean(lsGet('tk_pk'));
-  $('bioBtn').hidden = !show; $('bioOr').hidden = !show;
+  $('bioWrap').hidden = !show;
   if (show && bioAuto && !$('login').hidden) { bioAuto = false; signInWithBio(); }
 }
 $('bioBtn').onclick = signInWithBio;
