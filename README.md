@@ -217,7 +217,7 @@ npm install
 npm test
 ```
 
-25 tests run on Node's built-in runner. The API tests call the real handlers against an **in-memory Postgres** ([PGlite](https://pglite.dev)), swapped in for the Neon driver with a module resolve hook, so no database or network is needed.
+27 tests run on Node's built-in runner. The API tests call the real handlers against an **in-memory Postgres** ([PGlite](https://pglite.dev)), swapped in for the Neon driver with a module resolve hook, so no database or network is needed.
 
 | Covers | Examples |
 |---|---|
@@ -245,32 +245,33 @@ CI runs the same suite on every push and pull request.
 
 ```
 visitor-tracker/
-├── api/
-│   ├── collect.js      public tracker endpoint
-│   ├── login.js        password sign-in with rate limiting
-│   ├── passkey.js      fingerprint / Face ID sign-in and device list
-│   ├── sites.js        add, rename, delete sites
-│   ├── overview.js     every site in one set of queries
-│   ├── stats.js        one site: totals, charts, breakdowns
-│   ├── visitor.js      one named visitor's timeline
-│   ├── export.js       CSV and JSON backup
-│   ├── settings.js     retention and cleanup status
-│   ├── cleanup.js      daily retention job
-│   ├── _demo.js        sample data for the read-only demo
-│   └── _lib.js         database, sessions, hashing, user-agent parsing
-├── public/
-│   ├── index.html      the dashboard
-│   ├── t.js            the tracker snippet
-│   ├── sw.js           offline app shell
+├── backend/                  server code (Vercel Functions)
+│   ├── collect.js            public tracker endpoint
+│   ├── login.js              password sign-in with rate limiting
+│   ├── passkey.js            fingerprint / Face ID sign-in and device list
+│   ├── sites.js              add, rename, delete sites
+│   ├── overview.js           every site in one set of queries
+│   ├── stats.js              one site: totals, charts, breakdowns
+│   ├── visitor.js            one named visitor's timeline
+│   ├── export.js             CSV and JSON backup
+│   ├── settings.js           retention and cleanup status
+│   ├── cleanup.js            daily retention job
+│   ├── _lib.js               database, sessions, hashing, user-agent parsing
+│   ├── _demo.js              sample data for the read-only demo
+│   └── schema.sql            the tables, for reference
+├── frontend/                 everything the browser loads
+│   ├── index.html            the dashboard
+│   ├── t.js                  the tracker snippet
+│   ├── sw.js                 offline app shell
 │   └── manifest.webmanifest, icons
-├── tests/              unit and API tests
-├── schema.sql          the tables, for reference
-└── vercel.json         headers and the cron schedule
+├── api/                      one-line entry points into backend/ (Vercel only runs functions from /api)
+├── tests/                    unit and API tests
+└── vercel.json               output directory, headers and the cron schedule
 ```
 
 ## ☁️ Deployment
 
-- **Vercel** serves the dashboard from `public/` and runs `api/` as functions. `vercel.json` sets the cache headers and the daily cron at 03:00 UTC.
+- **Vercel** serves the dashboard from `frontend/` and runs the functions in `api/`, which just re-export the handlers in `backend/`. `vercel.json` sets the cache headers and the daily cron at 03:00 UTC.
 - **Neon** holds the data. The tables are created on first use.
 - **Install as an app:** in Chrome or Edge use the install icon in the address bar, on Android choose "Add to Home screen", on iPhone use Share then "Add to Home Screen".
 - **Backups:** the Account section of the dashboard downloads one JSON file with every site and event, and reminds you when it has been a while.

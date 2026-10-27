@@ -1,5 +1,5 @@
 {
-  "outputDirectory": "public",
+  "outputDirectory": "frontend",
   "headers": [
     {
       "source": "/t.js",

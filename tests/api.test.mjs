@@ -3,10 +3,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { call, auth } from './helpers.mjs';
 
-const load = async n => (await import(`../api/${n}.js`)).default;
+const load = async n => (await import(`../backend/${n}.js`)).default;
 const [login, sites, collect, stats, visitor, cleanup, overview] = await Promise.all(
   ['login', 'sites', 'collect', 'stats', 'visitor', 'cleanup', 'overview'].map(load));
-const { sql } = await import('../api/_lib.js');
+const { sql } = await import('../backend/_lib.js');
 
 const phone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15 Version/17.0 Mobile Safari/604.1';
 let token, site;

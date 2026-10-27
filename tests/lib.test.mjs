@@ -2,7 +2,7 @@ import './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const lib = await import('../api/_lib.js');
+const lib = await import('../backend/_lib.js');
 
 test('parseUA tells devices and browsers apart', () => {
   const phone = lib.parseUA('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15 Version/17.0 Mobile Safari/604.1');

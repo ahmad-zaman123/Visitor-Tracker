@@ -3,10 +3,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { call, auth } from './helpers.mjs';
 
-const load = async n => (await import(`../api/${n}.js`)).default;
+const load = async n => (await import(`../backend/${n}.js`)).default;
 const [login, sites, stats, overview, visitor, settings, exportH, passkey, cleanup] = await Promise.all(
   ['login', 'sites', 'stats', 'overview', 'visitor', 'settings', 'export', 'passkey', 'cleanup'].map(load));
-const { sql } = await import('../api/_lib.js');
+const { sql } = await import('../backend/_lib.js');
 
 test('the demo is off unless DEMO_MODE=1', async () => {
   delete process.env.DEMO_MODE;
