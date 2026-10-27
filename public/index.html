@@ -195,6 +195,12 @@
   dialog label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
   dialog label small { font-size: 12px; }
   dialog input { width: 100%; color: var(--text); }
+  .bio { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; font-weight: 600; color: var(--accent); border-color: var(--accent); }
+  .or { margin: 0; text-align: center; color: var(--muted); font-size: 13px; }
+  .banner.info { background: color-mix(in srgb, var(--accent) 10%, var(--card)); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+  .banner .btns { display: flex; gap: 8px; flex: none; }
+  .biorow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .biorow small { color: var(--muted); display: block; }
   .err { margin: 0; color: #dc2626; font-size: 13px; }
   .dlgfoot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
   .linkcard summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; }
@@ -222,6 +228,8 @@
     <div class="logo" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></div>
     <h1>Visitor Tracker</h1>
     <p class="sub">Sign in to see who's visiting your sites.</p>
+    <button type="button" class="bio" id="bioBtn" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 11a3 3 0 0 0-3 3c0 2.5-.5 4-1.5 5.5M12 7a7 7 0 0 0-7 7c0 1.5-.2 3-.7 4M12 3a11 11 0 0 1 11 11c0 2-.3 3.5-.8 5M15 14c0 3-.7 5-2 7M9 3.5A11 11 0 0 0 1 14"/></svg>Unlock with fingerprint / Face ID</button>
+    <p class="or" id="bioOr" hidden>or use your password</p>
     <label class="pwfield">Password
       <span class="pwwrap"><input id="pw" type="password" autocomplete="current-password" required><button type="button" id="pwToggle" aria-label="Show password" aria-pressed="false">Show</button></span>
     </label>
@@ -249,6 +257,7 @@
   <main id="main" tabindex="-1">
     <div class="statusbar"><button id="stBtn" type="button" hidden>⚙ Site settings</button><span id="updated" aria-live="polite"></span><button id="refreshBtn" type="button">↻ Refresh</button></div>
     <div id="banner" class="banner" role="alert" hidden><span id="bannerMsg"></span><button id="retryBtn" type="button">Retry</button></div>
+    <div id="bioPrompt" class="banner info" hidden><span>Skip typing the password? Turn on fingerprint or Face ID for this device.</span><span class="btns"><button type="button" id="bioYes" class="primary">Turn on</button><button type="button" id="bioNo">Not now</button></span></div>
     <section id="setup" class="card" hidden></section>
     <div id="overview" hidden>
       <div class="card stats" style="margin-bottom:16px">
@@ -280,6 +289,7 @@
         <button type="button" id="stCopy" data-act="copy-snippet">Copy snippet</button>
       </div>
       <div class="card"><h2>Data</h2><div id="stData"></div></div>
+      <div class="card" id="bioCard" hidden><h2>Fingerprint / Face ID</h2><div id="bioBody"></div></div>
       <div class="card dz">
         <h2>Danger zone</h2>
         <p style="margin:0 0 10px">Deleting a site removes it and every visit recorded for it. This can't be undone.</p>
@@ -525,6 +535,8 @@ function signOut(expired) {
   token = ''; sessionStorage.removeItem('tk_admin'); clearInterval(timer); lastUpdated = 0; showBanner('');
   $('app').hidden = true; $('login').hidden = false;
   $('pw').value = ''; $('pw').focus();
+  if (expired === true) bioAuto = true;
+  paintBio();
   if (expired === true && !$('login').hidden) { $('loginErr').textContent = 'Your session ended. Sign in again.'; $('loginErr').hidden = false; }
 }
 
@@ -545,7 +557,7 @@ $('login').onsubmit = async e => {
     if (r.status === 401) { const j = await r.json().catch(() => ({})); throw new Error('wrong:' + (j.left ?? '')); }
     if (!r.ok) throw new Error(r.statusText || r.status);
     token = (await r.json()).token;
-    sites = await api('/api/sites'); sessionStorage.setItem('tk_admin', token); start();
+    sites = await api('/api/sites'); sessionStorage.setItem('tk_admin', token); start(); offerBio();
   } catch (err) {
     const m = err.message || '';
     $('loginErr').textContent = m.startsWith('wrong:') ? 'Wrong password.' + (m.slice(6) !== '' && Number(m.slice(6)) <= 2 ? ` ${m.slice(6)} ${m.slice(6) === '1' ? 'try' : 'tries'} left before a short lockout.` : ' Try again.')
@@ -555,7 +567,7 @@ $('login').onsubmit = async e => {
     $('pw').select();
   } finally { $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign in'; }
 };
-$('signOut').onclick = () => signOut();
+$('signOut').onclick = () => { bioAuto = false; signOut(); };
 
 async function start() {
   $('login').hidden = true; $('app').hidden = false;
@@ -820,6 +832,7 @@ async function loadSettings(id, seq) {
   const site = sites.find(x => x.id === id);
   if (!site) return;
   lastSettings = d;
+  renderBioCard();
   $('stTitle').textContent = `Settings · ${site.name}`;
   if (!stDirty) { $('stName').value = site.name; $('stDomain').value = site.domain; $('stSave').disabled = true; }
   $('stId').textContent = site.id;
@@ -1193,7 +1206,116 @@ function openFromHash() {
 
 initFromUrl();
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('/sw.js').catch(() => {});
-const showLogin = () => { $('login').hidden = false; $('pw').focus(); };
+
+// ---- Fingerprint / Face ID (passkeys). The password still works; this is a faster way in on a device you trust.
+const hasBio = Boolean(window.PublicKeyCredential && navigator.credentials);
+let bioReady = false, bioAuto = true;
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
+const fromB64 = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+async function bioPost(action, body, signedIn) {
+  const r = await fetch('/api/passkey?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(signedIn ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body || {}) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || r.statusText); e.status = r.status; e.wait = Number(r.headers.get('Retry-After') || 0); throw e; }
+  return j;
+}
+function deviceName() {
+  const u = navigator.userAgent;
+  const dev = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android phone' : /Windows/.test(u) ? 'Windows PC' : /Mac/.test(u) ? 'Mac' : /Linux/.test(u) ? 'Linux PC' : 'This device';
+  return dev + ' · ' + (/Edg\//.test(u) ? 'Edge' : /Firefox/.test(u) ? 'Firefox' : /Chrome|CriOS/.test(u) ? 'Chrome' : /Safari/.test(u) ? 'Safari' : 'browser');
+}
+
+async function enableBio() {
+  const opts = await bioPost('reg-options', {}, true);
+  opts.challenge = fromB64(opts.challenge); opts.user.id = fromB64(opts.user.id);
+  (opts.excludeCredentials || []).forEach(c => { c.id = fromB64(c.id); });
+  const cred = await navigator.credentials.create({ publicKey: opts });
+  const response = {
+    id: cred.id, rawId: toB64(cred.rawId), type: cred.type, clientExtensionResults: cred.getClientExtensionResults(),
+    authenticatorAttachment: cred.authenticatorAttachment || undefined,
+    response: { clientDataJSON: toB64(cred.response.clientDataJSON), attestationObject: toB64(cred.response.attestationObject), transports: cred.response.getTransports ? cred.response.getTransports() : [] },
+  };
+  const out = await bioPost('reg-verify', { response, label: deviceName() }, true);
+  lsSet('tk_pk', out.id); lsSet('tk_pk_no', null);
+}
+
+async function signInWithBio() {
+  $('loginErr').hidden = true;
+  $('bioBtn').disabled = true;
+  try {
+    const opts = await bioPost('auth-options', {});
+    opts.challenge = fromB64(opts.challenge);
+    const cred = await navigator.credentials.get({ publicKey: opts });
+    const a = cred.response;
+    const out = await bioPost('auth-verify', { response: {
+      id: cred.id, rawId: toB64(cred.rawId), type: cred.type, clientExtensionResults: cred.getClientExtensionResults(),
+      authenticatorAttachment: cred.authenticatorAttachment || undefined,
+      response: { clientDataJSON: toB64(a.clientDataJSON), authenticatorData: toB64(a.authenticatorData), signature: toB64(a.signature), userHandle: a.userHandle ? toB64(a.userHandle) : undefined },
+    } });
+    token = out.token;
+    sites = await api('/api/sites'); sessionStorage.setItem('tk_admin', token); start();
+  } catch (err) {
+    let m = '';
+    if (err.name === 'NotAllowedError' || err.name === 'AbortError') m = '';
+    else if (err.status === 404) { lsSet('tk_pk', null); paintBio(); m = "This device isn't set up for fingerprint unlock any more. Use your password."; }
+    else if (err.status === 429) m = `Too many tries. Try again in ${Math.max(Math.ceil(err.wait / 60), 1)} minute(s).`;
+    else if (err.status === 401) m = "Fingerprint wasn't accepted. Use your password.";
+    else if (!(err instanceof TypeError)) m = `Fingerprint sign-in failed (${err.message}). Use your password.`;
+    else m = "Can't reach the server. Check your connection.";
+    if (m) { $('loginErr').textContent = m; $('loginErr').hidden = false; }
+    $('pw').focus();
+  } finally { $('bioBtn').disabled = false; }
+}
+
+// Show the unlock button only on a device that has been set up, and offer it once automatically.
+function paintBio() {
+  const show = hasBio && bioReady && Boolean(lsGet('tk_pk'));
+  $('bioBtn').hidden = !show; $('bioOr').hidden = !show;
+  if (show && bioAuto && !$('login').hidden) { bioAuto = false; signInWithBio(); }
+}
+$('bioBtn').onclick = signInWithBio;
+if (hasBio && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(v => { bioReady = v; paintBio(); }).catch(() => {});
+}
+
+function offerBio() {
+  $('bioPrompt').hidden = !(hasBio && bioReady && !lsGet('tk_pk') && !lsGet('tk_pk_no'));
+}
+$('bioNo').onclick = () => { lsSet('tk_pk_no', '1'); $('bioPrompt').hidden = true; };
+$('bioYes').onclick = async () => {
+  $('bioYes').disabled = true;
+  try { await enableBio(); $('bioPrompt').hidden = true; }
+  catch (err) { if (err.name !== 'NotAllowedError') showBanner(`Couldn't turn on fingerprint unlock (${err.message}).`); }
+  finally { $('bioYes').disabled = false; }
+};
+
+async function renderBioCard() {
+  $('bioCard').hidden = !hasBio;
+  if (!hasBio) return;
+  let list = [];
+  try { list = await api('/api/passkey'); } catch (e) { if (e.message === 'unauthorized') return; }
+  const mine = lsGet('tk_pk');
+  const when = t => t ? new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'never';
+  $('bioBody').innerHTML = (list.length ? list.map(d => `<div class="biorow"><span>${esc(d.label || 'Device')}${d.id === mine ? ' <b>(this device)</b>' : ''}<small>Added ${esc(when(d.created_at))} · last used ${esc(when(d.last_used))}</small></span><button type="button" data-bio-del="${esc(d.id)}">Remove</button></div>`).join('')
+    : '<p style="margin-top:0">No devices yet.</p>')
+    + (bioReady && !(mine && list.some(d => d.id === mine)) ? '<p style="margin:12px 0 0"><button type="button" id="bioAdd" class="primary">Turn on for this device</button></p>' : '')
+    + '<p class="hint" style="margin:10px 0 0">Your password always works too. Removing a device here stops its fingerprint unlock.</p>';
+}
+document.addEventListener('click', async e => {
+  const del = e.target.closest('[data-bio-del]');
+  const add = e.target.closest('#bioAdd');
+  if (!del && !add) return;
+  const btn = del || add;
+  btn.disabled = true;
+  try {
+    if (del) { await api('/api/passkey?id=' + encodeURIComponent(del.dataset.bioDel), { method: 'DELETE' }); if (del.dataset.bioDel === lsGet('tk_pk')) lsSet('tk_pk', null); }
+    else await enableBio();
+    await renderBioCard();
+  } catch (err) { btn.disabled = false; if (err.name !== 'NotAllowedError' && err.message !== 'unauthorized') stMsg(err.message || 'Something went wrong.'); }
+});
+const showLogin = () => { $('login').hidden = false; $('pw').focus(); paintBio(); };
 if (token) api('/api/sites').then(start).catch(showLogin);
 else showLogin();
 </script>

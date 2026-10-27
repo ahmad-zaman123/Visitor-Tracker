@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Small self-hosted visitor tracker with a dashboard, for all my sites",
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.0"
+    "@neondatabase/serverless": "^1.0.0",
+    "@simplewebauthn/server": "^14.0.3"
   }
 }

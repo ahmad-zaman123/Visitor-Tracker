@@ -66,3 +66,11 @@ visitors per tag and how many of them downloaded a file or clicked email or phon
 The dashboard is installable: in Chrome or Edge use the install icon in the address bar, on Android "Add to Home screen",
 on iPhone Share then "Add to Home Screen". It opens in its own window, and the page itself loads even without a
 connection (data needs one, and is never cached).
+
+### Fingerprint / Face ID
+
+After signing in with the password, the dashboard offers to turn on fingerprint or Face ID for that device (it uses
+passkeys, so the fingerprint never leaves the phone). Next time, the sign-in page opens the unlock prompt by itself, and
+the password stays available as a fallback. Devices are listed, and can be removed, under a site's Settings. The same
+wrong-attempt limit applies. Changing `ADMIN_PASSWORD` signs sessions out but does not remove registered devices, so
+remove them in Settings if you want them gone.
