@@ -218,6 +218,33 @@
   .spark i { flex: 1; min-width: 1px; background: color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 1px; min-height: 2px; }
   .sc-foot { font-size: 12px; color: var(--muted); }
   .sitecard.idle .sc-num { color: var(--muted); }
+  .sitecard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sc-head b, .sc-dom { min-width: 0; }
+  .sc-delta .low { color: var(--muted); }
+  .sc-extra { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sc-foot.stale { color: #b45309; }
+  :root[data-theme="dark"] .sc-foot.stale { color: #fbbf24; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sc-foot.stale { color: #fbbf24; } }
+  .sitecard.idle { padding: 12px 16px; }
+  .sitecard.idle .sc-row { margin: 4px 0; }
+  .sc-copy { align-self: flex-start; font-size: 12px; padding: 4px 10px; }
+  .ovbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
+  .ovbar .sp { flex: 1; }
+  .ovbar label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: transparent; padding: 5px 12px; font-size: 13px; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .ovnote { font-size: 12px; color: var(--muted); margin: -8px 0 12px; }
+  .hilite { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+  .hilite b { color: var(--text); font-weight: 600; }
+  .sites-grid.list { grid-template-columns: 1fr; gap: 8px; }
+  .list .sitecard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 16px; align-items: center; }
+  .list .sc-head { grid-column: 1; } .list .sc-dom { grid-column: 1; }
+  .list .sc-num { grid-column: 2; grid-row: 1; margin: 0; font-size: 20px; text-align: right; }
+  .list .sc-delta { grid-column: 2; grid-row: 2; text-align: right; }
+  .list .spark, .list .sc-row, .list .sc-extra { display: none; }
+  .list .sc-foot, .list .sc-copy { grid-column: 1 / -1; }
+  .list .sc-foot:empty { display: none; }
 
   .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 30; }
   .panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--card); border-left: 1px solid var(--line); z-index: 31; display: flex; flex-direction: column; box-shadow: -8px 0 24px rgba(0, 0, 0, .15); }
@@ -336,6 +363,13 @@
         <div class="stat"><b id="oVisitors">0</b><span>Unique visitors</span><small id="dOVisitors"></small></div>
         <div class="stat"><b id="oNamed">0</b><span>Named visitors</span><small id="dONamed"></small></div>
         <div class="stat"><b><span class="dot"></span><span id="oLive" style="font-size:inherit;color:inherit">0</span></b><span>Online now</span></div>
+      </div>
+      <p class="ovnote">Visitor totals add up each site's visitors, so one person who visits two sites counts twice.</p>
+      <p class="hilite" id="ovHigh" hidden></p>
+      <div class="ovbar">
+        <label>Sort by <select id="ovSort"><option value="views">Most views</option><option value="recent">Most recent</option><option value="change">Biggest change</option><option value="name">Name</option></select></label>
+        <span class="sp"></span>
+        <span class="seg" role="group" aria-label="Layout"><button type="button" id="ovCards" aria-pressed="true">Cards</button><button type="button" id="ovList" aria-pressed="false">List</button></span>
       </div>
       <div class="sites-grid" id="siteGrid"></div>
       <div class="card" style="margin-top:16px"><h2>Recently named visitors</h2><div class="scroll" id="ovRecent"></div></div>
@@ -1032,6 +1066,56 @@ $('stDelete').onclick = async () => {
   } catch (err) { dzMsg(err.message || 'Could not delete the site.'); }
 };
 
+let ovData = null, ovVs = '';
+const ovMode = () => lsRead('tk_ovview') || ((ovData && ovData.sites.length > 4 && matchMedia('(max-width:640px)').matches) ? 'list' : 'cards');
+const lowVol = (c, p) => c < 10 && p < 10;
+function ovDelta(x, vs) {
+  if (!x.last_seen || (!x.totals.views && !x.prev.views)) return '';
+  if (lowVol(x.totals.views, x.prev.views)) return `<span class="low">low volume</span>`;
+  return delta(x.totals.views, x.prev.views, vs);
+}
+function renderCards() {
+  const d = ovData; if (!d) return;
+  const mode = ovMode(), sort = $('ovSort').value;
+  $('ovCards').setAttribute('aria-pressed', mode === 'cards'); $('ovList').setAttribute('aria-pressed', mode === 'list');
+  const chg = x => (x.totals.views - x.prev.views) / Math.max(x.prev.views, 1);
+  const cmp = {
+    views: (p, q) => q.totals.views - p.totals.views,
+    recent: (p, q) => new Date(q.last_seen) - new Date(p.last_seen),
+    change: (p, q) => chg(q) - chg(p),
+    name: (p, q) => p.name.localeCompare(q.name),
+  }[sort];
+  const list = [...d.sites].sort((p, q) => (!p.last_seen - !q.last_seen) || cmp(p, q));
+  const grid = $('siteGrid'); grid.classList.toggle('list', mode === 'list');
+  grid.innerHTML = list.map(x => {
+    const never = !x.last_seen;
+    const age = never ? 0 : (Date.now() - new Date(x.last_seen)) / 864e5;
+    const stale = !never && age > 7;
+    const { rows } = fillBuckets(x.daily, d.days);
+    const max = Math.max(1, ...rows.map(r => r.views));
+    const spark = never || stale || !x.totals.views ? '' : `<div class="spark" aria-hidden="true">${rows.map(r => `<i style="height:${(r.views / max) * 100}%"></i>`).join('')}</div>`;
+    const bits = [];
+    if (x.top_page) bits.push(`Top page: ${esc(x.top_page)}`);
+    if (x.top_source) bits.push(`Top source: ${esc(x.top_source)}`);
+    const acts = [x.downloads && `${x.downloads} download${x.downloads === 1 ? '' : 's'}`, x.contacts && `${x.contacts} email/phone click${x.contacts === 1 ? '' : 's'}`].filter(Boolean);
+    const extra = [bits.join(' · '), acts.join(', ')].filter(Boolean).map(t => `<div class="sc-extra" title="${t}">${t}</div>`).join('');
+    return `<div class="sitecard${never ? ' idle' : ''}" role="button" tabindex="0" data-id="${esc(x.id)}">
+      <div class="sc-head"><b title="${esc(x.name)}">${esc(x.name)}</b>${x.live ? `<span class="sc-live">● ${x.live} online</span>` : ''}</div>
+      <div class="sc-dom" title="${esc(x.domain)}">${esc(x.domain)}</div>
+      <div class="sc-num">${x.totals.views} <span>views</span></div>
+      <div class="sc-delta">${ovDelta(x, ovVs)}</div>
+      <div class="sc-row">${never ? 'No visits yet.' : `${x.totals.visitors} visitor${x.totals.visitors === 1 ? '' : 's'} · ${x.totals.named} named`}</div>
+      ${extra}${spark}
+      <div class="sc-foot${stale ? ' stale' : ''}">${never ? '' : `Last visit ${agoEl(x.last_seen)}`}</div>
+      ${never ? `<button type="button" class="sc-copy" data-act="copy-snippet" data-text="${esc(snippetFor(x.id))}">Copy snippet</button>` : ''}
+    </div>`;
+  }).join('') || '<div class="empty">No sites yet.</div>';
+}
+$('ovSort').value = lsRead('tk_ovsort') || 'views';
+$('ovSort').onchange = () => { try { localStorage.setItem('tk_ovsort', $('ovSort').value); } catch (e) {} renderCards(); };
+$('ovCards').onclick = () => { try { localStorage.setItem('tk_ovview', 'cards'); } catch (e) {} renderCards(); };
+$('ovList').onclick = () => { try { localStorage.setItem('tk_ovview', 'list'); } catch (e) {} renderCards(); };
+
 async function loadOverview(seq) {
   const d = await api(`/api/overview?days=${days}`);
   if (seq !== loadSeq) return;
@@ -1046,21 +1130,14 @@ async function loadOverview(seq) {
   $('dOVisitors').innerHTML = delta(sum('visitors'), sum('visitors', 'prev'), vs);
   $('dONamed').innerHTML = delta(sum('named'), sum('named', 'prev'), vs);
 
-  $('siteGrid').innerHTML = d.sites.map(x => {
-    const never = !x.last_seen;
-    const { rows } = fillBuckets(x.daily, d.days);
-    const max = Math.max(1, ...rows.map(r => r.views));
-    const spark = never ? '' : `<div class="spark" aria-hidden="true">${rows.map(r => `<i style="height:${(r.views / max) * 100}%"></i>`).join('')}</div>`;
-    return `<button class="sitecard${never ? ' idle' : ''}" data-id="${esc(x.id)}">
-      <div class="sc-head"><b>${esc(x.name)}</b>${x.live ? `<span class="sc-live">● ${x.live} online</span>` : ''}</div>
-      <div class="sc-dom">${esc(x.domain)}</div>
-      <div class="sc-num">${x.totals.views} <span>views</span></div>
-      <div class="sc-delta">${never ? '' : delta(x.totals.views, x.prev.views, vs)}</div>
-      <div class="sc-row">${never ? 'No visits yet. Open it to get the install snippet.' : `${x.totals.visitors} visitor${x.totals.visitors === 1 ? '' : 's'} · ${x.totals.named} named`}</div>
-      ${spark}
-      <div class="sc-foot">${never ? '' : `Last visit ${agoEl(x.last_seen)}`}</div>
-    </button>`;
-  }).join('') || '<div class="empty">No sites yet.</div>';
+  ovData = d; ovVs = vs;
+  const hi = [];
+  const dl = d.sites.filter(x => x.downloads).sort((p, q) => q.downloads - p.downloads)[0];
+  if (dl) hi.push(`Most downloaded: <b>${esc(dl.name)}</b> (${dl.downloads})`);
+  if (d.top_campaign) hi.push(`Top campaign: <b>${esc(d.top_campaign.label)}</b> (${d.top_campaign.n} visitor${d.top_campaign.n === 1 ? '' : 's'})`);
+  $('ovHigh').innerHTML = hi.map(h => `<span>${h}</span>`).join('');
+  $('ovHigh').hidden = !hi.length;
+  renderCards();
 
   const siteName = Object.fromEntries(d.sites.map(x => [x.id, x.name]));
   $('ovRecent').innerHTML = d.recent.length
@@ -1071,8 +1148,12 @@ async function loadOverview(seq) {
 $('overview').addEventListener('click', e => {
   const n = e.target.closest('.ovname');
   if (n) return goSite(n.dataset.site, n.dataset.name);
+  if (e.target.closest('.sc-copy')) return;
   const c = e.target.closest('.sitecard');
   if (c) goSite(c.dataset.id);
+});
+$('overview').addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('sitecard')) { e.preventDefault(); goSite(e.target.dataset.id); }
 });
 
 // ---- Named visitors: search + sort, and recent activity: filters. All client-side on the loaded data.
