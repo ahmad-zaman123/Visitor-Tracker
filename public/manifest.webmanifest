@@ -1,6 +1,6 @@
 {
   "name": "Visitor Tracker",
-  "short_name": "Visitors",
+  "short_name": "Tracker",
   "description": "See who is visiting your sites.",
   "start_url": "/",
   "scope": "/",
