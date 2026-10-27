@@ -60,3 +60,9 @@ Add `utm_source`, `utm_medium` and/or `utm_campaign` to a link (for example `?ut
 and the visit, plus any downloads and clicks that follow in the same tab, are credited to it. The Campaigns card shows
 visitors per tag and how many of them downloaded a file or clicked email or phone. The visitor link builder has
 "Shared on" and "Campaign" fields that add the tags for you.
+
+## Install as an app
+
+The dashboard is installable: in Chrome or Edge use the install icon in the address bar, on Android "Add to Home screen",
+on iPhone Share then "Add to Home Screen". It opens in its own window, and the page itself loads even without a
+connection (data needs one, and is never cached).
