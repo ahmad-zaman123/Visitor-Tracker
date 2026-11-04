@@ -45,6 +45,8 @@ A privacy-minded analytics tool for a handful of personal sites: a portfolio, a 
 
 It runs free on **Vercel Hobby** and **Neon**, with no servers to look after and no third party seeing your visitors.
 
+Each deployment belongs to one person: a single admin password (or fingerprint) opens it, and there are no user accounts or registration page. That keeps it simple and keeps visitor data in your own database. To see it without deploying, use the [live demo](#-demo-mode). To run your own, follow the [quick start](#-quick-start).
+
 | 📥 Collect | 📊 Watch | 🔔 Know who |
 |---|---|---|
 | One snippet per site. Page views, downloads and email, phone and outbound clicks are logged on their own | Totals against the previous period, traffic by day, top pages, referrers, countries, devices and campaigns | `?ref=Sara-Acme` names the visitor, and their whole timeline is one tap away |
@@ -102,10 +104,6 @@ https://yoursite.com/?utm_source=linkedin&utm_campaign=job-oct   →  credited t
 tracker.identify('Sara');          // name someone from your own code
 tracker.track('clicked-resume');   // log a custom event
 ```
-
-## 👤 One owner, no sign-up
-
-Each deployment belongs to one person: a single admin password (or fingerprint) opens it, and there are no user accounts or registration page. That keeps it simple and keeps visitor data in your own database. To see it without deploying, use the [live demo](#-demo-mode). To run your own, follow the [quick start](#-quick-start).
 
 ## 🎮 Demo mode
 
@@ -168,7 +166,7 @@ After the first password sign-in the dashboard offers to enable fingerprint or F
 
 ### 📱 Installable and phone friendly
 
-Add it to your home screen and it opens in its own window. It has a bottom-sheet site switcher, pull to refresh, offline fallback to the last data it saw, and a back button that behaves.
+Add it to your home screen and it opens in its own window: the install icon in Chrome or Edge, "Add to Home screen" on Android, or Share then "Add to Home Screen" on iPhone. It has a bottom-sheet site switcher, pull to refresh, offline fallback to the last data it saw, and a back button that behaves.
 
 ### 🌗 Light and dark
 
@@ -180,7 +178,7 @@ Optional read-only demo with sample data, for showing the dashboard to someone w
 
 ### 💾 Your data is yours
 
-CSV export of one site's events, and a one-file JSON backup of everything.
+CSV export of one site's events, and a one-file JSON backup of everything from the Account section, which reminds you when it has been a while.
 
 </td>
 </tr>
@@ -221,19 +219,7 @@ npm install
 npm test
 ```
 
-35 tests run on Node's built-in runner. The API tests call the real handlers against an **in-memory Postgres** ([PGlite](https://pglite.dev)), swapped in for the Neon driver with a module resolve hook, so no database or network is needed. The browser tests start the real dashboard on that same setup and drive it in headless Chrome (set `CHROME_PATH` if Chrome isn't in a standard place; they are skipped without it).
-
-| Covers | Examples |
-|---|---|
-| **Sign-in and sessions** | wrong password refused, five wrong guesses lock an address, tampered or expired tokens rejected, a changed password signs everyone out |
-| **Collect** | IP stored only as a hash, bots dropped, unknown sites, foreign origins and `Origin: null` ignored, per-visitor and per-address rate limits, `sendBeacon` text bodies and subdomains accepted |
-| **Dashboard queries** | totals, named visitors, campaigns, top page and source per site |
-| **Retention** | cleanup removes only events past the window, and deleting a site removes its events |
-| **Demo mode** | off by default, sample data only, writes and exports refused, forged or expired demo tokens rejected |
-| **Browser** | demo walkthrough, password sign-in, adding a site, **passkey registration and sign-in** with a virtual authenticator, and a phone-width overflow check |
-| **Helpers** | user-agent parsing, domain cleaning, retention floor, constant-time comparisons |
-
-CI runs the same suite on every push and pull request.
+35 tests on Node's built-in runner. The API tests call the real handlers against an in-memory Postgres ([PGlite](https://pglite.dev)), so no database or network is needed, and headless Chrome tests drive the real dashboard, including **passkey sign-in** with a virtual authenticator. CI runs the same suite on every push and pull request.
 
 ## 🛠️ Tech stack
 
@@ -281,8 +267,6 @@ visitor-tracker/
 
 - **Vercel** serves the dashboard from `frontend/` and runs the functions in `api/`, which just re-export the handlers in `backend/`. `vercel.json` sets the cache headers and the daily cron at 03:00 UTC.
 - **Neon** holds the data. The tables are created on first use.
-- **Install as an app:** in Chrome or Edge use the install icon in the address bar, on Android choose "Add to Home screen", on iPhone use Share then "Add to Home Screen".
-- **Backups:** the Account section of the dashboard downloads one JSON file with every site and event, and reminds you when it has been a while.
 
 ## 📄 License
 
