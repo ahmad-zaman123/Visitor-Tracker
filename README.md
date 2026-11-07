@@ -79,6 +79,7 @@ The tables are created automatically on first use, so there is no migration step
 | `SESSION_SECRET` | **yes** | 32+ random characters that sign dashboard sessions and nothing else. Without it, sign-in is off. Make one with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. |
 | `CRON_SECRET` | recommended | Any long random string. Vercel sends it with the daily cleanup call, and the endpoint refuses requests without it. Without it, old visits are never deleted and the dashboard warns you. |
 | `RETENTION_DAYS` | no | How long to keep events. Default 180, minimum 30. |
+| `PASSKEY_ORIGIN` | no | The dashboard's address for fingerprint sign-in, e.g. `https://stats.example.com`. On Vercel it defaults to the project's production address, so set it only if you use another domain. |
 | `DEMO_MODE` | no | Set to `1` to show a **Try the demo** button on the sign-in page. See [Demo mode](#-demo-mode). |
 
 </details>

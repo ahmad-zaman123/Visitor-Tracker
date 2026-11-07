@@ -32,15 +32,13 @@ export default async function handler(req, res) {
     const domain = await getSite(site);
     if (!domain) return res.status(404).end();
 
-    // Ignore traffic from other origins (a copied site id on someone else's page).
-    // "null" (sandboxed frames, file pages) and anything unparseable can't be checked, so they are dropped quietly.
-    const origin = req.headers.origin || '';
-    if (origin) {
-      let host = '';
-      try { host = new URL(origin).hostname; } catch { /* dropped below */ }
-      const ok = host === domain || host.endsWith(`.${domain}`) || host === 'localhost';
-      if (!ok) return res.status(204).end();
-    }
+    // Only count hits sent by a browser from the registered site. Browsers always send an Origin header with
+    // these POSTs, so a hit without one came from a script, not a visitor. "null" (sandboxed frames, file pages)
+    // and anything unparseable can't be checked either. All of these are dropped quietly.
+    let host = '';
+    try { host = new URL(req.headers.origin || '').hostname; } catch { /* dropped below */ }
+    const ok = host === domain || host.endsWith(`.${domain}`) || host === 'localhost';
+    if (!ok) return res.status(204).end();
 
     const { device, browser, bot } = parseUA(req.headers['user-agent']);
     if (bot) return res.status(204).end();
