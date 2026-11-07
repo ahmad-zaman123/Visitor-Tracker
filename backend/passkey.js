@@ -1,5 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { sql, ensureSchema, isAdmin, isDemo, denyWrite, makeSession, clientKey, signInBlocked, recordSignInFailure, clip } from './_lib.js';
+import { sql, ensureSchema, sessionReady, isAdmin, isDemo, denyWrite, makeSession, clientKey, signInBlocked, recordSignInFailure, clip } from './_lib.js';
 
 const b64 = u8 => Buffer.from(u8).toString('base64url');
 const unb64 = s => new Uint8Array(Buffer.from(s, 'base64url'));
@@ -36,6 +36,7 @@ const readBody = req => {
 // DELETE ?id=               -> forget a device (signed in)
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  if (!sessionReady()) return res.status(503).json({ error: 'SESSION_SECRET is not set on the server' });
   await ensureSchema();
   const { rpID, origin } = where(req);
   const action = String(req.query.action || '');

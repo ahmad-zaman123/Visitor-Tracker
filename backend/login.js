@@ -1,4 +1,4 @@
-import { ensureSchema, passwordOk, makeSession, makeDemoSession, demoEnabled, clientKey, signInBlocked, recordSignInFailure } from './_lib.js';
+import { ensureSchema, sessionReady, passwordOk, makeSession, makeDemoSession, demoEnabled, clientKey, signInBlocked, recordSignInFailure } from './_lib.js';
 
 // POST { password, remember? } -> { token, expires }. The token is a signed session (12 hours, or 30 days with remember);
 // the password itself is never kept.
@@ -7,6 +7,8 @@ export default async function handler(req, res) {
   // The sign-in page asks this to know whether to offer "Try the demo".
   if (req.method === 'GET') return res.json({ demo: demoEnabled() });
   if (req.method !== 'POST') return res.status(405).end();
+
+  if (!sessionReady()) return res.status(503).json({ error: 'SESSION_SECRET is not set on the server' });
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }

@@ -73,3 +73,45 @@ test('hasBearer compares in constant time and rejects an unset secret', () => {
   assert.equal(lib.hasBearer({ headers: { authorization: 'Bearer ' } }, ''), false);
   assert.equal(lib.hasBearer({ headers: {} }, undefined), false);
 });
+
+test('demo tokens are signed with their own key, which has nothing to do with the password', async () => {
+  const { createHash, createHmac } = await import('node:crypto');
+  process.env.DEMO_MODE = '1';
+  try {
+    const { token } = lib.makeDemoSession();
+    const [exp, , sig] = token.split('.');
+    const req = t => ({ headers: { authorization: `Bearer ${t}` } });
+    assert.equal(lib.isDemo(req(token)), true);
+    assert.equal(lib.isAdmin(req(token)), false);
+    assert.equal(lib.isAdmin(req(`${exp}.${sig}`)), false);
+    // The old scheme: a key made from the password and salt. Knowing them must not reproduce a demo signature.
+    const oldKey = createHash('sha256').update(`${process.env.ADMIN_PASSWORD}|${process.env.HASH_SALT}|session`).digest();
+    assert.notEqual(createHmac('sha256', oldKey).update(`${exp}d`).digest('base64url'), sig);
+    // A demo token stays valid when the password changes, so it can't confirm a password guess either.
+    const old = process.env.ADMIN_PASSWORD;
+    process.env.ADMIN_PASSWORD = 'a different password';
+    assert.equal(lib.isDemo(req(token)), true);
+    process.env.ADMIN_PASSWORD = old;
+  } finally {
+    delete process.env.DEMO_MODE;
+  }
+});
+
+test('without a SESSION_SECRET nobody can sign in, and old tokens stop working', () => {
+  const req = t => ({ headers: { authorization: `Bearer ${t}` } });
+  const { token } = lib.makeSession();
+  const secret = process.env.SESSION_SECRET;
+  try {
+    for (const value of [undefined, 'too-short']) {
+      if (value === undefined) delete process.env.SESSION_SECRET;
+      else process.env.SESSION_SECRET = value;
+      assert.equal(lib.sessionReady(), false);
+      assert.equal(lib.isAdmin(req(token)), false);
+      assert.throws(() => lib.makeSession(), /SESSION_SECRET/);
+    }
+    process.env.SESSION_SECRET = 'another-session-secret-0123456789abcdef';
+    assert.equal(lib.isAdmin(req(token)), false);
+  } finally {
+    process.env.SESSION_SECRET = secret;
+  }
+});

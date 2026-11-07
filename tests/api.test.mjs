@@ -24,6 +24,20 @@ test('sign in: wrong password is refused, right password gives a session', async
   assert.ok(ok.body.expires > Date.now());
 });
 
+test('sign in: a server without SESSION_SECRET says so instead of handing out sessions', async () => {
+  const secret = process.env.SESSION_SECRET;
+  delete process.env.SESSION_SECRET;
+  try {
+    for (const body of [{ password: 'correct horse' }, { demo: true }]) {
+      const res = await call(login, { method: 'POST', body, headers: { 'x-forwarded-for': '203.0.113.3' } });
+      assert.equal(res.statusCode, 503);
+      assert.equal(res.body.token, undefined);
+    }
+  } finally {
+    process.env.SESSION_SECRET = secret;
+  }
+});
+
 test('sign in: five wrong guesses from one address pause further tries', async () => {
   const headers = { 'x-forwarded-for': '203.0.113.50' };
   for (let i = 0; i < 5; i++) await call(login, { method: 'POST', body: { password: 'x' }, headers });
