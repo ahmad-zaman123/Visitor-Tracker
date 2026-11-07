@@ -12,7 +12,7 @@ const phone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15 Ver
 let token, site;
 
 const hit = (body, headers = {}) =>
-  call(collect, { method: 'POST', body, headers: { 'user-agent': phone, 'x-forwarded-for': '198.51.100.7', ...headers } });
+  call(collect, { method: 'POST', body, headers: { 'user-agent': phone, 'x-forwarded-for': '198.51.100.7', origin: 'https://example.com', ...headers } });
 
 test('sign in: wrong password is refused, right password gives a session', async () => {
   const bad = await call(login, { method: 'POST', body: { password: 'nope' }, headers: { 'x-forwarded-for': '203.0.113.1' } });
@@ -88,9 +88,9 @@ test('collect: accepts sendBeacon text bodies and subdomains', async () => {
   assert.equal((await sql`select count(*)::int as n from events where vid = 'v2'`)[0].n, 1);
 });
 
-test('collect: an Origin of "null" or garbage is ignored, not an error', async () => {
+test('collect: a missing, "null" or garbage Origin is ignored, not an error', async () => {
   const before = (await sql`select count(*)::int as n from events`)[0].n;
-  for (const origin of ['null', 'not a url', 'ftp://']) assert.equal((await hit({ site, vid: 'o1' }, { origin })).statusCode, 204, origin);
+  for (const origin of [undefined, '', 'null', 'not a url', 'ftp://']) assert.equal((await hit({ site, vid: 'o1' }, { origin })).statusCode, 204, origin);
   assert.equal((await sql`select count(*)::int as n from events`)[0].n, before);
 });
 
@@ -149,4 +149,23 @@ test('deleting a site removes its events too', async () => {
   const r = await call(sites, { method: 'DELETE', headers: auth(token), query: { id: site } });
   assert.equal(r.statusCode, 204);
   assert.equal((await sql`select count(*)::int as n from events where site_id = ${site}`)[0].n, 0);
+});
+
+test('passkey: the expected site comes from the configuration, not from request headers', async () => {
+  const passkey = await load('passkey');
+  const options = headers => call(passkey, { method: 'POST', query: { action: 'auth-options' }, headers: { 'x-forwarded-for': '203.0.113.90', ...headers } });
+  const forged = { host: 'evil.example.org', 'x-forwarded-host': 'evil.example.org' };
+  try {
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'tracker.example.com';
+    assert.equal((await options(forged)).body.rpId, 'tracker.example.com');
+    process.env.PASSKEY_ORIGIN = 'https://stats.example.net';
+    assert.equal((await options(forged)).body.rpId, 'stats.example.net');
+    delete process.env.PASSKEY_ORIGIN;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    // Local development only: the Host header, never X-Forwarded-Host.
+    assert.equal((await options({ host: 'localhost:3000', 'x-forwarded-host': 'evil.example.org' })).body.rpId, 'localhost');
+  } finally {
+    delete process.env.PASSKEY_ORIGIN;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  }
 });

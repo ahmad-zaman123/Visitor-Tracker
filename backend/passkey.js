@@ -5,9 +5,17 @@ const b64 = u8 => Buffer.from(u8).toString('base64url');
 const unb64 = s => new Uint8Array(Buffer.from(s, 'base64url'));
 const USER_ID = new TextEncoder().encode('visitor-tracker-admin');
 
-// The browser only signs for the site it registered on, so these come from the address the request arrived at.
+// The browser only signs for the site it registered on, so the server must expect that exact site. It comes from
+// PASSKEY_ORIGIN, or on Vercel from the project's production address. Only local development falls back to the
+// request's Host header, because headers are set by whoever sends the request.
 function where(req) {
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  const fixed = process.env.PASSKEY_ORIGIN ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '');
+  if (fixed) {
+    const url = new URL(fixed);
+    return { rpID: url.hostname, origin: url.origin };
+  }
+  const host = String(req.headers.host || '').trim();
   const local = /^localhost(:\d+)?$/.test(host);
   return { rpID: host.replace(/:\d+$/, ''), origin: `${local ? 'http' : 'https'}://${host}` };
 }
