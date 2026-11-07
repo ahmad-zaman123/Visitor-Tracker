@@ -39,23 +39,35 @@ export function hasBearer(req, want) {
   return timingSafeEqual(Buffer.from(given), Buffer.from(want));
 }
 
-// Sessions are a signed expiry time, not the password. Changing ADMIN_PASSWORD signs everyone out.
+// Sessions are a signed expiry time, not the password. They are signed with SESSION_SECRET, a random value
+// that is used for nothing else. Admin sessions also mix in a hash of ADMIN_PASSWORD, so changing it signs
+// everyone out. Demo sessions use their own key, which has nothing to do with the password, so a public
+// demo token can't be used to test password guesses offline.
 export const SESSION_HOURS = 12;
-const sessionKey = () => createHash('sha256').update(`${process.env.ADMIN_PASSWORD || ''}|${process.env.HASH_SALT || ''}|session`).digest();
-const sign = exp => createHmac('sha256', sessionKey()).update(String(exp)).digest('base64url');
+export const sessionReady = () => (process.env.SESSION_SECRET || '').length >= 32;
+const keyFor = purpose => {
+  if (!sessionReady()) throw new Error('SESSION_SECRET must be set to at least 32 random characters');
+  return createHmac('sha256', process.env.SESSION_SECRET).update(purpose).digest();
+};
+const adminKey = () =>
+  keyFor(`admin|${createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex')}`);
+const sign = (key, value) => createHmac('sha256', key).update(String(value)).digest('base64url');
+const signedBy = (key, value, sig) => {
+  const want = sign(key, value);
+  return sig.length === want.length && timingSafeEqual(Buffer.from(sig), Buffer.from(want));
+};
 
 export function makeSession(hours = SESSION_HOURS) {
   const exp = Date.now() + hours * 36e5;
-  return { token: `${exp}.${sign(exp)}`, expires: exp };
+  return { token: `${exp}.${sign(adminKey(), exp)}`, expires: exp };
 }
 
 export function isAdmin(req) {
-  if (!process.env.ADMIN_PASSWORD) return false;
+  if (!process.env.ADMIN_PASSWORD || !sessionReady()) return false;
   const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   const [exp, sig] = given.split('.');
   if (!exp || !sig || !/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
-  const want = sign(exp);
-  return sig.length === want.length && timingSafeEqual(Buffer.from(sig), Buffer.from(want));
+  return signedBy(adminKey(), exp, sig);
 }
 
 // Demo sessions are signed separately (`exp.d.sig`) and only count when DEMO_MODE=1. They never match isAdmin().
@@ -64,15 +76,14 @@ export const DEMO_HOURS = 2;
 
 export function makeDemoSession() {
   const exp = Date.now() + DEMO_HOURS * 36e5;
-  return { token: `${exp}.d.${sign(`${exp}d`)}`, expires: exp, demo: true };
+  return { token: `${exp}.d.${sign(keyFor('demo'), exp)}`, expires: exp, demo: true };
 }
 
 export function isDemo(req) {
-  if (!demoEnabled()) return false;
+  if (!demoEnabled() || !sessionReady()) return false;
   const [exp, tag, sig] = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').split('.');
   if (!exp || tag !== 'd' || !sig || !/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
-  const want = sign(`${exp}d`);
-  return sig.length === want.length && timingSafeEqual(Buffer.from(sig), Buffer.from(want));
+  return signedBy(keyFor('demo'), exp, sig);
 }
 
 // Who is asking: 'admin', 'demo' or null. Write endpoints answer a demo visitor with 403 so the dashboard keeps the session.
