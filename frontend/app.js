@@ -1,11 +1,13 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const lsRead = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-let token = sessionStorage.getItem('tk_admin') || lsRead('tk_admin_long') || '';
+// The session lives in an httpOnly cookie that this script can't read. `who` is what the server says: 'admin', 'demo' or null.
+let who = null;
+// Sessions used to be kept in browser storage. Drop any left over from before.
+try { sessionStorage.removeItem('tk_admin'); localStorage.removeItem('tk_admin_long'); } catch (e) {}
 let sites = [];
 let timer;
-// Demo sessions carry a third token part (`exp.d.sig`). They are never remembered between visits.
-const isDemo = () => token.split('.').length === 3;
+const isDemo = () => who === 'demo';
 function paintDemo() { document.body.classList.toggle('demo', isDemo()); $('demoBar').hidden = !isDemo(); }
 
 // ---- Theme: follows the system until the button is used, then remembers the choice.
@@ -29,7 +31,7 @@ async function copyText(text) {
 }
 async function download(kind) {
   const q = kind === 'csv' ? `kind=csv&site=${encodeURIComponent($('site').value)}` : 'kind=backup';
-  const r = await fetch('/api/export?' + q, { headers: { Authorization: 'Bearer ' + token } });
+  const r = await fetch('/api/export?' + q);
   if (r.status === 401) { signOut(true); throw new Error('unauthorized'); }
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
   const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || `export.${kind === 'csv' ? 'csv' : 'json'}`;
@@ -165,7 +167,7 @@ async function api(path, opts = {}) {
   const cacheable = (!opts.method || opts.method === 'GET') && CACHEABLE.test(path);
   let r;
   try {
-    r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...opts.headers } });
+    r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', ...opts.headers } });
   } catch (e) {
     const hit = cacheable && e instanceof TypeError ? cacheGet(path) : null;
     if (!hit) throw e;
@@ -184,7 +186,7 @@ const touchFirst = () => Boolean(window.matchMedia) && matchMedia('(pointer: coa
 function focusPw(select) { if (touchFirst()) return; $('pw').focus(); if (select) $('pw').select(); }
 
 function signOut(expired) {
-  cacheClear(); token = ''; paintDemo(); sessionStorage.removeItem('tk_admin'); try { localStorage.removeItem('tk_admin_long'); } catch (e) {} clearInterval(timer); lastUpdated = 0; showBanner('');
+  cacheClear(); who = null; paintDemo(); fetch('/api/login', { method: 'DELETE' }).catch(() => {}); clearInterval(timer); lastUpdated = 0; showBanner('');
   $('app').hidden = true; $('login').hidden = false;
   $('pw').value = ''; focusPw();
   if (expired === true) bioAuto = true;
@@ -232,9 +234,8 @@ $('login').onsubmit = async e => {
     if (r.status === 429) { const m = Math.ceil(Number(r.headers.get('Retry-After') || 900) / 60); throw new Error('locked:' + m); }
     if (r.status === 401) { const j = await r.json().catch(() => ({})); throw new Error('wrong:' + (j.left ?? '')); }
     if (!r.ok) throw new Error(r.statusText || r.status);
-    token = (await r.json()).token;
+    who = 'admin';
     sites = await api('/api/sites');
-    if (remember) { try { localStorage.setItem('tk_admin_long', token); } catch (e) { sessionStorage.setItem('tk_admin', token); } } else sessionStorage.setItem('tk_admin', token);
     await opening(); start(); offerBio();
   } catch (err) {
     const m = err.message || '';
@@ -246,16 +247,14 @@ $('login').onsubmit = async e => {
 };
 $('signOut').onclick = () => { bioAuto = false; signOut(); };
 $('demoExit').onclick = () => $('signOut').click();
-// Offer the demo only when the server has it switched on.
-fetch('/api/login').then(r => r.ok ? r.json() : null).then(j => { if (j?.demo) $('demoBtn').hidden = false; }).catch(() => {});
 $('demoBtn').onclick = async () => {
   clearLogin(); $('demoBtn').disabled = true;
   try {
     const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ demo: true }) });
     if (!r.ok) throw new Error(r.status);
-    token = (await r.json()).token; sessionStorage.setItem('tk_admin', token);
+    who = 'demo';
     sites = await api('/api/sites'); await opening(); start();
-  } catch (err) { token = ''; loginError("Couldn't open the demo. Try again in a moment."); }
+  } catch (err) { who = null; loginError("Couldn't open the demo. Try again in a moment."); }
   finally { $('demoBtn').disabled = false; }
 };
 
@@ -1235,7 +1234,7 @@ const fromB64 = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/'
 const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
 async function bioPost(action, body, signedIn) {
-  const r = await fetch('/api/passkey?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(signedIn ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body || {}) });
+  const r = await fetch('/api/passkey?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) { const e = new Error(j.error || r.statusText); e.status = r.status; e.wait = Number(r.headers.get('Retry-After') || 0); throw e; }
   return j;
@@ -1273,8 +1272,8 @@ async function signInWithBio() {
       authenticatorAttachment: cred.authenticatorAttachment || undefined,
       response: { clientDataJSON: toB64(a.clientDataJSON), authenticatorData: toB64(a.authenticatorData), signature: toB64(a.signature), userHandle: a.userHandle ? toB64(a.userHandle) : undefined },
     } });
-    token = out.token;
-    sites = await api('/api/sites'); sessionStorage.setItem('tk_admin', token); await opening(); start();
+    who = 'admin';
+    sites = await api('/api/sites'); await opening(); start();
   } catch (err) {
     let m = '';
     if (err.name === 'NotAllowedError' || err.name === 'AbortError') m = '';
@@ -1340,5 +1339,10 @@ document.addEventListener('click', async e => {
   } catch (err) { btn.disabled = false; if (err.name !== 'NotAllowedError' && err.message !== 'unauthorized') { $('bioMsg').textContent = del ? `Could not remove the device (${err.message || 'try again'}).` : (err.message || 'Something went wrong.'); $('bioMsg').hidden = false; } }
 });
 const showLogin = () => { $('login').hidden = false; focusPw(); paintBio(); };
-if (token) api('/api/sites').then(start).catch(showLogin);
-else showLogin();
+// Ask the server whether a session cookie is already there, and whether to offer the demo.
+fetch('/api/login').then(r => (r.ok ? r.json() : {})).catch(() => ({})).then(j => {
+  if (j.demo) $('demoBtn').hidden = false;
+  who = j.who || null;
+  if (who) api('/api/sites').then(list => { sites = list; return start(); }).catch(showLogin);
+  else showLogin();
+});

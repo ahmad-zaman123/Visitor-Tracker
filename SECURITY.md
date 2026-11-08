@@ -7,7 +7,7 @@ Please don't open a public issue for something that could be abused. I'll reply 
 
 ## How the app protects data
 
-- **Dashboard sign-in** is a password checked once by `/api/login`, which returns an HMAC-signed session (12 hours, or 30 days with "keep me signed in"). Sessions are signed with `SESSION_SECRET`, which is used for nothing else. The password is never stored in the browser. Changing `ADMIN_PASSWORD` or `SESSION_SECRET` signs everyone out.
+- **Dashboard sign-in** is a password checked once by `/api/login`, which sets an HMAC-signed session (12 hours, or 30 days with "keep me signed in") in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie that page scripts can't read. A request that changes something only counts the cookie when it comes from the dashboard's own site. Sessions are signed with `SESSION_SECRET`, which is used for nothing else. Neither the password nor the session is stored where scripts can reach it. Changing `ADMIN_PASSWORD` or `SESSION_SECRET` signs everyone out.
 - **Brute force:** five wrong guesses from one address, or 30 from anywhere, within 15 minutes pause sign-in. Fingerprint sign-in shares the same limit.
 - **Passkeys (WebAuthn)** keep the biometric on the device. The server stores only the public key. The site they're checked against is fixed by configuration, never taken from request headers.
 - **Visitor data:** raw IPs are never stored, only a salted hash. Visitor ids are random and live in the visitor's browser. Do Not Track is honoured.

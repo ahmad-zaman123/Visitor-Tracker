@@ -202,7 +202,7 @@ CSV export of one site's events, and a one-file JSON backup of everything from t
 
 ## 🔌 API
 
-The tracker endpoint is public. Everything else needs the signed session returned by `/api/login`, sent as `Authorization: Bearer <token>`.
+The tracker endpoint is public. Everything else needs the signed session that `/api/login` sets as an httpOnly `tk_session` cookie. `GET /api/login` says who is signed in, and `DELETE /api/login` signs out. Scripts can send the same token as `Authorization: Bearer <token>`.
 
 | Area | Endpoints |
 |---|---|

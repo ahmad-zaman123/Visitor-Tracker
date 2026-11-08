@@ -1,7 +1,7 @@
 import './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { call, auth } from './helpers.mjs';
+import { call, auth, sessionOf } from './helpers.mjs';
 
 const load = async n => (await import(`../backend/${n}.js`)).default;
 const [login, sites, collect, stats, visitor, cleanup, overview] = await Promise.all(
@@ -20,7 +20,8 @@ test('sign in: wrong password is refused, right password gives a session', async
   assert.equal(bad.body.left, 4);
   const ok = await call(login, { method: 'POST', body: { password: 'correct horse' }, headers: { 'x-forwarded-for': '203.0.113.2' } });
   assert.equal(ok.statusCode, 200);
-  token = ok.body.token;
+  token = sessionOf(ok);
+  assert.equal(ok.body.token, undefined);
   assert.ok(ok.body.expires > Date.now());
 });
 
@@ -31,7 +32,7 @@ test('sign in: a server without SESSION_SECRET says so instead of handing out se
     for (const body of [{ password: 'correct horse' }, { demo: true }]) {
       const res = await call(login, { method: 'POST', body, headers: { 'x-forwarded-for': '203.0.113.3' } });
       assert.equal(res.statusCode, 503);
-      assert.equal(res.body.token, undefined);
+      assert.equal(sessionOf(res), '');
     }
   } finally {
     process.env.SESSION_SECRET = secret;
@@ -168,4 +169,28 @@ test('passkey: the expected site comes from the configuration, not from request 
     delete process.env.PASSKEY_ORIGIN;
     delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
   }
+});
+
+test('session cookie: httpOnly, only sent to the API, and only trusted for writes from this site', async () => {
+  const signIn = remember => call(login, { method: 'POST', body: { password: 'correct horse', remember }, headers: { 'x-forwarded-for': '203.0.113.120' } });
+  const short = await signIn(false);
+  const cookie = short.headers['set-cookie'];
+  for (const part of ['HttpOnly', 'Secure', 'SameSite=Strict', 'Path=/api']) assert.ok(cookie.includes(part), part);
+  assert.ok(!cookie.includes('Max-Age'), 'ends with the browser session unless remembered');
+  assert.match((await signIn(true)).headers['set-cookie'], /Max-Age=2[0-9]{6}/);
+
+  const jar = { cookie: `tk_session=${encodeURIComponent(sessionOf(short))}`, host: 'tracker.example.com' };
+  assert.equal((await call(login, { headers: jar })).body.who, 'admin');
+  assert.equal((await call(sites, { headers: jar })).statusCode, 200);
+
+  const add = headers => call(sites, { method: 'POST', headers: { ...jar, ...headers }, body: { name: 'Cookie test', domain: 'cookie.example.com' } });
+  assert.equal((await add({ 'sec-fetch-site': 'cross-site' })).statusCode, 401);
+  assert.equal((await add({ origin: 'https://evil.example.org' })).statusCode, 401);
+  assert.equal((await add({})).statusCode, 401, 'a write with no Origin or Sec-Fetch-Site is not trusted');
+  assert.equal((await add({ 'sec-fetch-site': 'same-origin' })).statusCode, 201);
+  assert.equal((await add({ origin: 'https://tracker.example.com' })).statusCode, 201);
+
+  const out = await call(login, { method: 'DELETE', headers: jar });
+  assert.equal(out.statusCode, 204);
+  assert.match(out.headers['set-cookie'], /tk_session=;.*Max-Age=0/);
 });

@@ -14,3 +14,6 @@ export function call(handler, { method = 'GET', headers = {}, query = {}, body }
 }
 
 export const auth = token => ({ authorization: `Bearer ${token}` });
+
+// The session token from a sign-in response's httpOnly cookie.
+export const sessionOf = res => decodeURIComponent((/tk_session=([^;]*)/.exec(res.headers['set-cookie'] || '') || [])[1] || '');

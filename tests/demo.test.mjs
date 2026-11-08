@@ -1,7 +1,7 @@
 import './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { call, auth } from './helpers.mjs';
+import { call, auth, sessionOf } from './helpers.mjs';
 
 const load = async n => (await import(`../backend/${n}.js`)).default;
 const [login, sites, stats, overview, visitor, settings, exportH, passkey, cleanup] = await Promise.all(
@@ -10,17 +10,17 @@ const { sql } = await import('../backend/_lib.js');
 
 test('the demo is off unless DEMO_MODE=1', async () => {
   delete process.env.DEMO_MODE;
-  assert.deepEqual((await call(login)).body, { demo: false });
+  assert.deepEqual((await call(login)).body, { demo: false, who: null });
   assert.equal((await call(login, { method: 'POST', body: { demo: true } })).statusCode, 404);
 });
 
 test('demo session works, shows sample data and never reads the database', async () => {
   process.env.DEMO_MODE = '1';
-  assert.deepEqual((await call(login)).body, { demo: true });
+  assert.deepEqual((await call(login)).body, { demo: true, who: null });
   const s = await call(login, { method: 'POST', body: { demo: true } });
   assert.equal(s.statusCode, 200);
   assert.equal(s.body.demo, true);
-  const h = auth(s.body.token);
+  const h = auth(sessionOf(s));
 
   const ov = await call(overview, { headers: h, query: { days: '30' } });
   assert.equal(ov.body.sites.length, 3);
@@ -47,7 +47,7 @@ test('demo session works, shows sample data and never reads the database', async
 
 test('demo session cannot change or export anything, and is not an admin', async () => {
   process.env.DEMO_MODE = '1';
-  const h = auth((await call(login, { method: 'POST', body: { demo: true } })).body.token);
+  const h = auth(sessionOf(await call(login, { method: 'POST', body: { demo: true } })));
   for (const [fn, opts] of [
     [sites, { method: 'POST', body: { name: 'X', domain: 'x.example.com' } }],
     [sites, { method: 'PATCH', query: { id: 'demo-cafe' }, body: { name: 'X', domain: 'x.example.com' } }],
@@ -60,16 +60,16 @@ test('demo session cannot change or export anything, and is not an admin', async
 
 test('demo tokens stop working when the demo is switched off, and admin tokens are unaffected', async () => {
   process.env.DEMO_MODE = '1';
-  const token = (await call(login, { method: 'POST', body: { demo: true } })).body.token;
+  const token = sessionOf(await call(login, { method: 'POST', body: { demo: true } }));
   process.env.DEMO_MODE = '0';
   assert.equal((await call(overview, { headers: auth(token), query: {} })).statusCode, 401);
-  const admin = (await call(login, { method: 'POST', body: { password: 'correct horse' }, headers: { 'x-forwarded-for': '203.0.113.77' } })).body.token;
+  const admin = sessionOf(await call(login, { method: 'POST', body: { password: 'correct horse' }, headers: { 'x-forwarded-for': '203.0.113.77' } }));
   assert.equal((await call(overview, { headers: auth(admin), query: {} })).statusCode, 200);
 });
 
 test('forged and expired demo tokens are rejected', async () => {
   process.env.DEMO_MODE = '1';
-  const { token } = (await call(login, { method: 'POST', body: { demo: true } })).body;
+  const token = sessionOf(await call(login, { method: 'POST', body: { demo: true } }));
   const [exp, , sig] = token.split('.');
   for (const t of [`${exp}.d.${sig.replace(/.$/, c => (c === 'a' ? 'b' : 'a'))}`, `${Date.now() - 1}.d.${sig}`, `${exp}.x.${sig}`, `${exp}.${sig}`])
     assert.equal((await call(overview, { headers: auth(t), query: {} })).statusCode, 401, t);

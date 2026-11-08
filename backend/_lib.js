@@ -62,9 +62,34 @@ export function makeSession(hours = SESSION_HOURS) {
   return { token: `${exp}.${sign(adminKey(), exp)}`, expires: exp };
 }
 
+// The browser keeps the session in an httpOnly cookie, which page scripts can't read. Scripts and tests may still
+// send it as a bearer token. A cookie only counts for a write when the request comes from this site itself.
+export const SESSION_COOKIE = 'tk_session';
+const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
+function sameSite(req) {
+  if (SAFE.has(req.method || 'GET')) return true;
+  const fetchSite = req.headers['sec-fetch-site'];
+  if (fetchSite) return fetchSite === 'same-origin';
+  try { return new URL(req.headers.origin || '').host === req.headers.host; } catch { return false; }
+}
+export function tokenOf(req) {
+  const bearer = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (bearer) return bearer;
+  const cookie = (req.headers.cookie || '').split(';').map(c => c.trim()).find(c => c.startsWith(SESSION_COOKIE + '='));
+  return cookie && sameSite(req) ? decodeURIComponent(cookie.slice(SESSION_COOKIE.length + 1)) : '';
+}
+// Max-Age only for "keep me signed in"; otherwise the cookie ends with the browser session (and the token's own expiry).
+export function setSessionCookie(res, { token, expires }, remember) {
+  const age = remember ? `; Max-Age=${Math.max(0, Math.floor((expires - Date.now()) / 1000))}` : '';
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/api; HttpOnly; Secure; SameSite=Strict${age}`);
+}
+export function clearSessionCookie(res) {
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
+}
+
 export function isAdmin(req) {
   if (!process.env.ADMIN_PASSWORD || !sessionReady()) return false;
-  const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const given = tokenOf(req);
   const [exp, sig] = given.split('.');
   if (!exp || !sig || !/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
   return signedBy(adminKey(), exp, sig);
@@ -81,7 +106,7 @@ export function makeDemoSession() {
 
 export function isDemo(req) {
   if (!demoEnabled() || !sessionReady()) return false;
-  const [exp, tag, sig] = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').split('.');
+  const [exp, tag, sig] = tokenOf(req).split('.');
   if (!exp || tag !== 'd' || !sig || !/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
   return signedBy(keyFor('demo'), exp, sig);
 }

@@ -1,5 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { sql, ensureSchema, sessionReady, isAdmin, isDemo, denyWrite, makeSession, clientKey, signInBlocked, recordSignInFailure, clip } from './_lib.js';
+import { sql, ensureSchema, sessionReady, setSessionCookie, isAdmin, isDemo, denyWrite, makeSession, clientKey, signInBlocked, recordSignInFailure, clip } from './_lib.js';
 
 const b64 = u8 => Buffer.from(u8).toString('base64url');
 const unb64 = s => new Uint8Array(Buffer.from(s, 'base64url'));
@@ -124,7 +124,9 @@ export default async function handler(req, res) {
       } catch { v = { verified: false }; }
       if (!v.verified) return res.status(401).json({ error: 'unauthorized', left: await recordSignInFailure(key) });
       await sql`update passkeys set counter = ${v.authenticationInfo.newCounter}, last_used = now() where id = ${row.id}`;
-      return res.json(makeSession());
+      const session = makeSession();
+      setSessionCookie(res, session, false);
+      return res.json({ expires: session.expires });
     }
 
     return res.status(400).json({ error: 'unknown action' });

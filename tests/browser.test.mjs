@@ -69,6 +69,15 @@ test('sign in: wrong password is explained, right password opens the dashboard',
   await page.click('#loginBtn');
   await until(() => visible(page, '#app'), 'the dashboard');
   assert.equal(await visible(page, '#demoBar'), false, 'no demo banner for the real admin');
+  // The cookie keeps the session across a reload; signing out ends it, and a reload then shows the sign-in page.
+  await page.reload();
+  await until(() => visible(page, '#app'), 'the dashboard after a reload');
+  await page.evaluate(() => document.getElementById('signOut').click());
+  await until(() => visible(page, '#login'), 'the sign-in page after signing out');
+  await new Promise(r => setTimeout(r, 300));
+  await page.reload();
+  await until(() => visible(page, '#login'), 'the sign-in page after a reload');
+  assert.equal(await visible(page, '#app'), false);
   assert.deepEqual(errors, []);
   await page.close();
 });
@@ -79,7 +88,12 @@ test('a real site can be added, shows up, and the snippet carries its id', opts,
   await page.click('#loginBtn');
   await until(() => visible(page, '#app'), 'the dashboard');
   const made = await page.evaluate(async () => {
-    const r = await fetch('/api/sites', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionStorage.getItem('tk_admin') }, body: JSON.stringify({ name: 'E2E Site', domain: 'e2e.example.com' }) });
+    // The session is an httpOnly cookie: scripts can't see it, but the browser sends it with same-site requests.
+    if (document.cookie.includes('tk_session') || JSON.stringify({ ...sessionStorage, ...localStorage }).includes('.')) {
+      const kept = Object.keys({ ...sessionStorage, ...localStorage }).filter(k => /admin|session|token/i.test(k));
+      if (document.cookie.includes('tk_session') || kept.length) throw new Error('session visible to scripts: ' + (kept.join(',') || 'document.cookie'));
+    }
+    const r = await fetch('/api/sites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'E2E Site', domain: 'e2e.example.com' }) });
     return r.json();
   });
   await page.reload();
