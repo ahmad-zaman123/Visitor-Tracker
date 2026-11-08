@@ -186,7 +186,7 @@ const touchFirst = () => Boolean(window.matchMedia) && matchMedia('(pointer: coa
 function focusPw(select) { if (touchFirst()) return; $('pw').focus(); if (select) $('pw').select(); }
 
 function signOut(expired) {
-  cacheClear(); who = null; paintDemo(); fetch('/api/login', { method: 'DELETE' }).catch(() => {}); clearInterval(timer); lastUpdated = 0; showBanner('');
+  cacheClear(); who = null; paintDemo(); fetch('/api/login', { method: 'DELETE', keepalive: true }).catch(() => {}); clearInterval(timer); lastUpdated = 0; showBanner('');
   $('app').hidden = true; $('login').hidden = false;
   $('pw').value = ''; focusPw();
   if (expired === true) bioAuto = true;
